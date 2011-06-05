@@ -8,6 +8,7 @@ class Vim <Formula
   def install
     system "./configure", "--disable-debug", "--disable-dependency-tracking",
                           "--enable-wide-chars", "--enable-multibyte",
+                          "--enable-pythoninterp",
                           "--prefix=#{prefix}"
     system "make install"
   end
