@@ -14,7 +14,8 @@ class FormulaInstaller
     @f = ff
     @show_header = true
     @ignore_deps = ARGV.include? '--ignore-dependencies' || ARGV.interactive?
-    @install_bottle = !ff.bottle.nil? && !ARGV.build_from_source?
+    @install_bottle = !ff.bottle.nil? && !ARGV.build_from_source? &&
+                      Pathname.new(ff.bottle).version == ff.version
   end
 
   def install
@@ -65,7 +66,6 @@ class FormulaInstaller
       ohai 'Caveats', f.keg_only_text
       @show_summary_heading = true
     else
-      check_PATH
       check_manpages
       check_infopages
       check_jars
@@ -76,7 +76,10 @@ class FormulaInstaller
   def finish
     ohai 'Finishing up' if ARGV.verbose?
 
-    link unless f.keg_only?
+    unless f.keg_only?
+      link
+      check_PATH
+    end
     fix_install_names
 
     ohai "Summary" if ARGV.verbose? or show_summary_heading
@@ -176,7 +179,7 @@ class FormulaInstaller
   def check_PATH
     # warn the user if stuff was installed outside of their PATH
     [f.bin, f.sbin].each do |bin|
-      if bin.directory? and bin.children.count > 0
+      if bin.directory? and bin.children.length > 0
         bin = (HOMEBREW_PREFIX/bin.basename).realpath.to_s
         unless paths.include? bin
           opoo "#{bin} is not in your PATH"
@@ -245,10 +248,13 @@ end
 
 
 class Formula
-  def keg_only_text; <<-EOS.undent
+  def keg_only_text
+    # Add indent into reason so undent won't truncate the beginnings of lines
+    reason = self.keg_only?.to_s.gsub(/[\n]/, "\n    ")
+    return <<-EOS.undent
     This formula is keg-only, so it was not symlinked into #{HOMEBREW_PREFIX}.
 
-    #{self.keg_only?}
+    #{reason}
 
     Generally there are no consequences of this for you.
     If you build your own software and it requires this formula, you'll need
