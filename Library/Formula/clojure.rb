@@ -3,8 +3,7 @@ require 'formula'
 class Clojure < Formula
   url 'http://repo1.maven.org/maven2/org/clojure/clojure/1.3.0/clojure-1.3.0.zip'
   md5 'de91ee9914017a38c7cc391ab8fcbc1a'
-  sha1 '7f5822ed847bb8a4c8ef93beed2d79248c20e1d1'
-  head 'https://github.com/clojure/clojure'
+  head 'https://github.com/clojure/clojure.git'
   homepage 'http://clojure.org/'
 
   def script; <<-EOS.undent
@@ -13,7 +12,7 @@ class Clojure < Formula
     # With no arguments runs Clojure's REPL.
 
     # Put the Clojure jar from the cellar and the current folder in the classpath.
-    CLOJURE=$CLASSPATH:#{prefix}/clojure.jar:${PWD}
+    CLOJURE=$CLASSPATH:#{prefix}/clojure-1.3.0.jar:${PWD}
 
     if [ "$#" -eq 0 ]; then
         java -cp $CLOJURE clojure.main --repl
@@ -25,9 +24,8 @@ class Clojure < Formula
 
   def install
     system "ant" if ARGV.build_head?
-    system "mv clojure-#{version}.jar clojure.jar" # Because now clojure.jar is
-                                                   # named clojure-$VERSION.jar
-    prefix.install 'clojure.jar'
+    prefix.install 'clojure-1.3.0.jar'
+    (prefix+'clojure-1.3.0.jar').chmod(0644) # otherwise it's 0600
     (prefix+'classes').mkpath
     (bin+'clj').write script
   end
