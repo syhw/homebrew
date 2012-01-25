@@ -30,7 +30,9 @@ module Homebrew extend self
   end
 
   def sha
-    sha = `cd #{HOMEBREW_REPOSITORY} && git rev-parse --verify HEAD 2> /dev/null`.chomp
+    sha = HOMEBREW_REPOSITORY.cd do
+      `git rev-parse --verify -q HEAD 2>/dev/null`.chomp
+    end
     if sha.empty? then "(none)" else sha end
   end
 
@@ -52,7 +54,7 @@ module Homebrew extend self
     GCC-4.0: #{gcc_40 ? "build #{gcc_40}" : "N/A"}
     GCC-4.2: #{gcc_42 ? "build #{gcc_42}" : "N/A"}
     LLVM: #{llvm ? "build #{llvm}" : "N/A"}
-    Clang: #{clang ? "#{clang}-#{clang_build}" : "N/A"}
+    Clang: #{clang ? "#{clang} build #{clang_build}" : "N/A"}
     MacPorts or Fink? #{macports_or_fink_installed?}
     X11 installed? #{x11_installed?}
     EOS
