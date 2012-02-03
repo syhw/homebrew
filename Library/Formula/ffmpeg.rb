@@ -5,9 +5,9 @@ def ffplay?
 end
 
 class Ffmpeg < Formula
-  url 'http://ffmpeg.org/releases/ffmpeg-0.9.1.tar.bz2'
+  url 'http://ffmpeg.org/releases/ffmpeg-0.10.tar.bz2'
   homepage 'http://ffmpeg.org/'
-  sha1 '89326f93902aee49dac659a63b39b0f69be0e7ee'
+  sha1 'a3a7fe25db760a99d51266b33386da9c8552feef'
 
   head 'git://git.videolan.org/ffmpeg.git'
 
@@ -53,7 +53,7 @@ class Ffmpeg < Formula
     args << "--enable-libvorbis" if Formula.factory('libvorbis').installed?
     args << "--enable-libvpx" if Formula.factory('libvpx').installed?
     args << "--enable-libxvid" if Formula.factory('xvid').installed?
-    args << "--enable-libopencore-amrnb" if Formula.factory('opencore-amr').installed?    
+    args << "--enable-libopencore-amrnb" if Formula.factory('opencore-amr').installed?
     args << "--enable-libopencore-amrwb" if Formula.factory('opencore-amr').installed?
     args << "--disable-ffplay" unless ffplay?
 
