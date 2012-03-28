@@ -1,9 +1,10 @@
 require 'download_strategy'
+require 'dependencies'
 require 'formula_support'
 require 'hardware'
 require 'bottles'
 require 'extend/fileutils'
-
+require 'patches'
 
 # Derive and define at least @url, see Library/Formula for examples
 class Formula
@@ -51,7 +52,9 @@ class Formula
     set_instance_variable 'version'
     # Otherwise detect the version from the URL
     @version ||= @spec_to_use.detect_version
-    validate_variable :version
+    # Only validate if a version was set; GitHubGistFormula needs to get
+    # the URL to determine the version
+    validate_variable :version if @version
 
     CHECKSUM_TYPES.each { |type| set_instance_variable type }
 
@@ -188,10 +191,11 @@ class Formula
         # so load any deps before this point! And exit asap afterwards
         yield self
       rescue Interrupt, RuntimeError, SystemCallError => e
+        puts if Interrupt === e # don't print next to the ^C
         unless ARGV.debug?
           %w(config.log CMakeCache.txt).select{|f| File.exist? f}.each do |f|
             HOMEBREW_LOGS.install f
-            ohai "#{f} was copied to #{HOMEBREW_LOGS}"
+            puts "#{f} was copied to #{HOMEBREW_LOGS}"
           end
           raise
         end
@@ -279,7 +283,6 @@ class Formula
   end
 
   def self.canonical_name name
-    # Cast pathnames to strings.
     name = name.to_s if name.kind_of? Pathname
 
     formula_with_that_name = HOMEBREW_REPOSITORY+"Library/Formula/#{name}.rb"
@@ -287,7 +290,13 @@ class Formula
     possible_cached_formula = HOMEBREW_CACHE_FORMULA+"#{name}.rb"
 
     if name.include? "/"
-      # Don't resolve paths or URLs
+      if name =~ %r{(.+)/(.+)/(.+)}
+        tapd = HOMEBREW_REPOSITORY/"Library/Taps"/"#$1-#$2".downcase
+        tapd.find_formula do |relative_pathname|
+          return "#{tapd}/#{relative_pathname}" if relative_pathname.stem.to_s == $3
+        end if tapd.directory?
+      end
+      # Otherwise don't resolve paths or URLs
       name
     elsif formula_with_that_name.file? and formula_with_that_name.readable?
       name
@@ -353,21 +362,23 @@ class Formula
     raise FormulaUnavailableError.new(name)
   end
 
+  def tap
+    if path.realpath.to_s =~ %r{#{HOMEBREW_REPOSITORY}/Library/Taps/(\w+)-(\w+)}
+      "#$1/#$2"
+    else
+      # remotely installed formula are not mxcl/master but this will do for now
+      "mxcl/master"
+    end
+  end
+
   def self.path name
     HOMEBREW_REPOSITORY+"Library/Formula/#{name.downcase}.rb"
   end
 
-  def mirrors
-    self.class.mirrors or []
-  end
+  def mirrors;       self.class.mirrors or []; end
 
-  def deps
-    self.class.deps or []
-  end
-
-  def external_deps
-    self.class.external_deps or {}
-  end
+  def deps;          self.class.dependencies.deps;          end
+  def external_deps; self.class.dependencies.external_deps; end
 
   # deps are in an installable order
   # which means if a depends on b then b will be ordered before a in this list
@@ -377,8 +388,8 @@ class Formula
 
   def self.expand_deps f
     f.deps.map do |dep|
-      dep = Formula.factory dep
-      expand_deps(dep) << dep
+      f_dep = Formula.factory dep.to_s
+      expand_deps(f_dep) << f_dep
     end
   end
 
@@ -432,10 +443,14 @@ public
 
   # For brew-fetch and others.
   def fetch
-    downloader = @downloader
-    # Don't attempt mirrors if this install is not pointed at a "stable" URL.
-    # This can happen when options like `--HEAD` are invoked.
-    mirror_list =  @spec_to_use == @standard ? mirrors : []
+    if install_bottle? self
+      downloader = CurlBottleDownloadStrategy.new bottle_url, name, version, nil
+    else
+      downloader = @downloader
+      # Don't attempt mirrors if this install is not pointed at a "stable" URL.
+      # This can happen when options like `--HEAD` are invoked.
+      mirror_list =  @spec_to_use == @standard ? mirrors : []
+    end
 
     # Ensure the cache exists
     HOMEBREW_CACHE.mkpath
@@ -506,71 +521,23 @@ private
   end
 
   def patch
-    # Only call `patches` once.
-    # If there is code in `patches`, which is not recommended, we only
-    # want to run that code once.
-    the_patches = patches
-    return if the_patches.nil?
-
-    if not the_patches.kind_of? Hash
-      # We assume -p1
-      patch_defns = { :p1 => the_patches }
-    else
-      patch_defns = the_patches
-    end
-
-    patch_list=[]
-    n=0
-    patch_defns.each do |arg, urls|
-      # DATA.each does each line, which doesn't work so great
-      urls = [urls] unless urls.kind_of? Array
-
-      urls.each do |url|
-        p = {:filename => '%03d-homebrew.diff' % n+=1, :compression => false}
-
-        if defined? DATA and url == DATA
-          pn = Pathname.new p[:filename]
-          pn.write(DATA.read.to_s.gsub("HOMEBREW_PREFIX", HOMEBREW_PREFIX))
-        elsif url =~ %r[^\w+\://]
-          out_fn = p[:filename]
-          case url
-          when /\.gz$/
-            p[:compression] = :gzip
-            out_fn += '.gz'
-          when /\.bz2$/
-            p[:compression] = :bzip2
-            out_fn += '.bz2'
-          end
-          p[:curl_args] = [url, '-o', out_fn]
-        else
-          # it's a file on the local filesystem
-          p[:filename] = url
-        end
-
-        p[:args] = ["-#{arg}", '-i', p[:filename]]
-
-        patch_list << p
-      end
-    end
-
+    patch_list = Patches.new(patches)
     return if patch_list.empty?
 
-    external_patches = patch_list.collect{|p| p[:curl_args]}.select{|p| p}.flatten
-    unless external_patches.empty?
+    unless patch_list.external_curl_args.empty?
       ohai "Downloading patches"
       # downloading all at once is much more efficient, especially for FTP
-      curl(*external_patches)
+      curl(*patch_list.external_curl_args)
     end
 
     ohai "Patching"
     patch_list.each do |p|
-      case p[:compression]
-        when :gzip  then safe_system "/usr/bin/gunzip",  p[:filename]+'.gz'
-        when :bzip2 then safe_system "/usr/bin/bunzip2", p[:filename]+'.bz2'
+      case p.compression
+        when :gzip  then safe_system "/usr/bin/gunzip",  p.download_filename
+        when :bzip2 then safe_system "/usr/bin/bunzip2", p.download_filename
       end
-      # -f means it doesn't prompt the user if there are errors, if just
-      # exits with non-zero status
-      safe_system '/usr/bin/patch', '-f', *(p[:args])
+      # -f means don't prompt the user if there are errors; just exit with non-zero status
+      safe_system '/usr/bin/patch', '-f', *(p.patch_args)
     end
   end
 
@@ -603,7 +570,7 @@ private
       end
     end
 
-    attr_rw :version, :homepage, :mirrors, :specs, :deps, :external_deps
+    attr_rw :version, :homepage, :mirrors, :specs
     attr_rw :keg_only_reason, :fails_with_llvm_reason, :skip_clean_all
     attr_rw :bottle_url, :bottle_sha1
     attr_rw(*CHECKSUM_TYPES)
@@ -636,17 +603,35 @@ private
     end
 
     def bottle url=nil, &block
-      if block_given?
-        eval <<-EOCLASS
-        module BottleData
-          def self.url url; @url = url; end
-          def self.sha1 sha1; @sha1 = sha1; end
-          def self.return_data; [@url,@sha1]; end
+      return unless block_given?
+
+      bottle_block = Class.new do
+        def self.url url
+          @url = url
         end
-        EOCLASS
-        BottleData.instance_eval &block
-        @bottle_url, @bottle_sha1 = BottleData.return_data
+
+        def self.sha1 sha1
+          case sha1
+          when Hash
+            key, value = sha1.shift
+            @sha1 = key if value == MacOS.cat
+          when String
+            @sha1 = sha1 if MacOS.lion?
+          end
+        end
+
+        def self.url_sha1
+          if @sha1 && @url
+            return @url, @sha1
+          elsif @sha1
+            return nil, @sha1
+          end
+        end
       end
+
+      bottle_block.instance_eval &block
+      @bottle_url, @bottle_sha1 = bottle_block.url_sha1
+      @bottle_url ||= "#{bottle_base_url}#{name.downcase}-#{@version||@standard.detect_version}#{bottle_native_suffix}" if @bottle_sha1
     end
 
     def mirror val, specs=nil
@@ -659,29 +644,12 @@ private
       @mirrors.uniq!
     end
 
-    def depends_on name
-      @deps ||= []
-      @external_deps ||= {:python => [], :perl => [], :ruby => [], :jruby => [], :chicken => [], :rbx => [], :node => [], :lua => []}
+    def dependencies
+      @dependencies ||= DependencyCollector.new
+    end
 
-      case name
-      when String, Formula
-        @deps << name
-      when Hash
-        key, value = name.shift
-        case value
-        when :python, :perl, :ruby, :jruby, :chicken, :rbx, :node, :lua
-          @external_deps[value] << key
-        when :optional, :recommended, :build
-          @deps << key
-        else
-          raise "Unsupported dependency type #{value}"
-        end
-      when Symbol
-        opoo "#{self.name} -- #{name}: Using symbols for deps is deprecated; use a string instead"
-        @deps << name.to_s
-      else
-        raise "Unsupported type #{name.class}"
-      end
+    def depends_on dep
+      dependencies.add(dep)
     end
 
     def skip_clean paths
