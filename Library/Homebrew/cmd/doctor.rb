@@ -183,6 +183,7 @@ def check_for_broken_symlinks
   broken_symlinks = []
   %w[lib include sbin bin etc share].each do |d|
     d = HOMEBREW_PREFIX/d
+    next unless d.directory?
     d.find do |pn|
       broken_symlinks << pn if pn.symlink? and pn.readlink.expand_path.to_s =~ /^#{HOMEBREW_PREFIX}/ and not pn.exist?
     end
@@ -228,6 +229,17 @@ def check_cc
     Line Tools for Xcode. You can either download this from http://connect.apple.com
     or install them from inside Xcode's Download preferences. Homebrew does not
     require all of Xcode! You only need the Command Line Tools package!
+    EOS
+  end
+end
+
+def check_standard_compilers
+  return if check_for_latest_xcode # only check if Xcode is up to date
+  if !MacOS.compilers_standard? then <<-EOS.undent
+    Your compilers are different from the standard versions for your Xcode.
+    If you have Xcode 4.3 or newer, you should install the Command Line Tools for
+    Xcode from within Xcode's Download preferences.
+    Otherwise, you should reinstall Xcode.
     EOS
   end
 end
