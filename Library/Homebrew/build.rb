@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/bin/ruby
 
 # This script is called by formula_installer as a separate instance.
 # Rationale: Formula can use __END__, Formula can change ENV
@@ -31,6 +31,11 @@ at_exit do
     # re-entered. This is in-case any build script call sudo. Certainly this is
     # can be inconvenient for the user. But we need to be safe.
     system "/usr/bin/sudo -k"
+
+    if ENV['HOMEBREW_ERROR_PIPE']
+      require 'fcntl'
+      IO.new(ENV['HOMEBREW_ERROR_PIPE'].to_i, 'w').fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+    end
 
     install(Formula.factory($0))
   rescue Exception => e
