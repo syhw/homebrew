@@ -1,24 +1,39 @@
+require 'set'
+require 'cmd/missing'
+
 class Volumes
   def initialize
-    @volumes = []
-    raw_mounts=`/sbin/mount`
-    raw_mounts.split("\n").each do |line|
-      case line
-      when /^(.+) on (\S+) \(/
-        @volumes << [$1, $2]
-      end
-    end
-    # Sort volumes by longest path prefix first
-    @volumes.sort! {|a,b| b[1].length <=> a[1].length}
+    @volumes = get_mounts
   end
 
   def which path
-    @volumes.each_index do |i|
-      vol = @volumes[i]
-      return i if vol[1].start_with? path.to_s
+    vols = get_mounts path
+
+    # no volume found
+    if vols.empty?
+      return -1
     end
 
-    return -1
+    vol_index = @volumes.index(vols[0])
+    # volume not found in volume list
+    if vol_index.nil?
+      return -1
+    end
+    return vol_index
+  end
+
+  def get_mounts path=nil
+    vols = []
+    # get the volume of path, if path is nil returns all volumes
+    raw_df = `/bin/df -P #{path}`
+    raw_df.split("\n").each do |line|
+      case line
+      # regex matches: /dev/disk0s2   489562928 440803616  48247312    91%    /
+      when /^(.*)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]{1,3}\%)\s+(.*)/
+        vols << $6
+      end
+    end
+    return vols
   end
 end
 
@@ -65,7 +80,7 @@ def check_for_macgpg2
       Several other checks in this script will turn up problems, such as stray
       dylibs in /usr/local and permissions issues with share and man in /usr/local/.
     EOS
-  end
+  end unless File.exist? '/usr/local/MacGPG2/share/gnupg/VERSION'
 end
 
 def check_for_stray_dylibs
@@ -457,23 +472,30 @@ def check_user_path_3
 end
 
 def check_which_pkg_config
-  binary = `/usr/bin/which pkg-config`.chomp
-  return if binary.empty?
+  binary = which 'pkg-config'
+  return if binary.nil?
 
-  unless binary == "#{HOMEBREW_PREFIX}/bin/pkg-config"
-    <<-EOS.undent
-      You have a non-brew 'pkg-config' in your PATH:
-        #{binary}
+  mono_config = Pathname.new("/usr/bin/pkg-config")
+  if mono_config.exist? && mono_config.realpath.to_s.include?("Mono.framework") then <<-EOS.undent
+    You have a non-Homebrew 'pkg-config' in your PATH:
+      /usr/bin/pkg-config => #{mono_config.realpath}
 
-      `./configure` may have problems finding brew-installed packages using
-      this other pkg-config.
+    This was most likely created by the Mono installer. `./configure` may
+    have problems finding brew-installed packages using this other pkg-config.
+    EOS
+  elsif binary.to_s != "#{HOMEBREW_PREFIX}/bin/pkg-config" then <<-EOS.undent
+    You have a non-Homebrew 'pkg-config' in your PATH:
+      #{binary}
+
+    `./configure` may have problems finding brew-installed packages using
+    this other pkg-config.
     EOS
   end
 end
 
 def check_pkg_config_paths
-  binary = `/usr/bin/which pkg-config`.chomp
-  return if binary.empty?
+  binary = which 'pkg-config'
+  return if binary.nil?
 
   pkg_config_paths = `pkg-config --variable pc_path pkg-config`.chomp.split(':')
 
@@ -586,6 +608,7 @@ def check_for_DYLD_INSERT_LIBRARIES
 end
 
 def check_for_symlinked_cellar
+  return unless HOMEBREW_CELLAR.exist?
   if HOMEBREW_CELLAR.symlink?
     <<-EOS.undent
       Symlinked Cellars can cause problems.
@@ -753,18 +776,18 @@ def check_tmpdir
 end
 
 def check_missing_deps
-  s = []
-  `brew missing`.each_line do |line|
-    line =~ /(.*): (.*)/
-    $2.split.each do |dep|
-        s << dep unless s.include? dep
-    end
+  return unless HOMEBREW_CELLAR.exist?
+  s = Set.new
+  missing_deps = Homebrew.find_missing_brews(Homebrew.installed_brews)
+  missing_deps.each do |m|
+    s.merge m[1]
   end
+
   if s.length > 0 then <<-EOS.undent
     Some installed formula are missing dependencies.
     You should `brew install` the missing dependencies:
 
-        brew install #{s * " "}
+        brew install #{s.to_a.sort * " "}
 
     Run `brew missing` for more details.
     EOS
@@ -834,6 +857,7 @@ def check_for_bad_python_symlink
 end
 
 def check_for_outdated_homebrew
+  return unless which 'git'
   HOMEBREW_REPOSITORY.cd do
     if File.directory? ".git"
       local = `git rev-parse -q --verify refs/remotes/origin/master`.chomp
