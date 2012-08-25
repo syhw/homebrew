@@ -1,5 +1,3 @@
-require 'bottles'
-
 module HomebrewArgvExtension
   def named
     @named ||= reject{|arg| arg[0..0] == '-'}
@@ -73,7 +71,7 @@ module HomebrewArgvExtension
     flag? '--force'
   end
   def verbose?
-    flag? '--verbose' or ENV['HOMEBREW_VERBOSE']
+    flag? '--verbose' or ENV['VERBOSE'] or ENV['HOMEBREW_VERBOSE']
   end
   def debug?
     flag? '--debug' or ENV['HOMEBREW_DEBUG']
@@ -86,6 +84,13 @@ module HomebrewArgvExtension
   end
   def one?
     flag? '--1'
+  end
+  def dry_run?
+    include?('--dry-run') || switch?('n')
+  end
+
+  def ignore_deps?
+    include? '--ignore-dependencies'
   end
 
   def build_head?
@@ -112,10 +117,12 @@ module HomebrewArgvExtension
   end
 
   def build_bottle?
+    require 'bottles'
     bottles_supported? and include? '--build-bottle'
   end
 
   def build_from_source?
+    require 'bottles'
     flag? '--build-from-source' or ENV['HOMEBREW_BUILD_FROM_SOURCE'] \
       or not bottles_supported? or not options_only.empty?
   end
