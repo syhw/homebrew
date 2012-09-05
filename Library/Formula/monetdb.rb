@@ -7,11 +7,12 @@ class Monetdb < Formula
 
   head 'http://dev.monetdb.org/hg/MonetDB', :using => :hg
 
+  depends_on 'pkg-config' => :build
   depends_on 'pcre'
   depends_on 'readline' # Compilation fails with libedit.
 
   def install
-    system "./bootstrap" if ARGV.build_head?
+    system "./bootstrap" if build.head?
 
     system "./configure", "--prefix=#{prefix}",
                           "--enable-debug=no",
