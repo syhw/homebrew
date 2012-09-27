@@ -6,6 +6,7 @@ require 'bottles'
 require 'extend/fileutils'
 require 'patches'
 require 'compilers'
+require 'build_environment'
 
 
 class Formula
@@ -140,6 +141,8 @@ class Formula
   # generally we don't want var stuff inside the keg
   def var; HOMEBREW_PREFIX+'var' end
 
+  # override this to provide a plist
+  def startup_plist; nil; end
   # plist name, i.e. the name of the launchd service
   def plist_name; 'homebrew.mxcl.'+name end
   def plist_path; prefix+(plist_name+'.plist') end
@@ -204,6 +207,7 @@ class Formula
   # redefining skip_clean? now deprecated
   def skip_clean? path
     return true if self.class.skip_clean_all?
+    return true if path.extname == '.la' and self.class.skip_clean_paths.include? :la
     to_check = path.relative_path_from(prefix).to_s
     self.class.skip_clean_paths.include? to_check
   end
@@ -219,25 +223,17 @@ class Formula
         # we allow formulas to do anything they want to the Ruby process
         # so load any deps before this point! And exit asap afterwards
         yield self
-      rescue Interrupt, RuntimeError, SystemCallError => e
-        puts if Interrupt === e # don't print next to the ^C
-        unless ARGV.debug?
-          %w(config.log CMakeCache.txt).select{|f| File.exist? f}.each do |f|
-            HOMEBREW_LOGS.install f
-            puts "#{f} was copied to #{HOMEBREW_LOGS}"
+      rescue RuntimeError, SystemCallError => e
+        if not ARGV.debug?
+          %w(config.log CMakeCache.txt).each do |fn|
+            (HOMEBREW_LOGS/name).install(fn) if File.file?(fn)
           end
           raise
         end
+
         onoe e.inspect
-        puts e.backtrace
-
+        puts e.backtrace unless e.kind_of? BuildError
         ohai "Rescuing build..."
-        if (e.was_running_configure? rescue false) and File.exist? 'config.log'
-          puts "It looks like an autotools configure failed."
-          puts "Gist 'config.log' and any error output when reporting an issue."
-          puts
-        end
-
         puts "When you exit this shell Homebrew will attempt to finalise the installation."
         puts "If nothing is installed or the shell exits with a non-zero error code,"
         puts "Homebrew will abort. The installation prefix is:"
@@ -433,6 +429,10 @@ class Formula
   def deps;         self.class.dependencies.deps;         end
   def requirements; self.class.dependencies.requirements; end
 
+  def env
+    @env ||= BuildEnvironment.new(self.class.environments)
+  end
+
   def conflicts
     requirements.select { |r| r.is_a? ConflictRequirement }
   end
@@ -454,6 +454,49 @@ class Formula
     reqs = recursive_deps.map { |dep| dep.requirements }.to_set
     reqs << requirements
     reqs.flatten
+  end
+
+  def to_hash
+    hsh = {
+      "name" => name,
+      "homepage" => homepage,
+      "versions" => {
+        "stable" => (stable.version.to_s if stable),
+        "bottle" => bottle && MacOS.bottles_supported? || false,
+        "devel" => (devel.version.to_s if devel),
+        "head" => (head.version.to_s if head)
+      },
+      "installed" => [],
+      "linked_keg" => (linked_keg.realpath.basename.to_s if linked_keg.exist?),
+      "keg_only" => keg_only?,
+      "dependencies" => deps.map {|dep| dep.to_s},
+      "conflicts_with" => conflicts.map {|c| c.formula},
+      "options" => [],
+      "caveats" => caveats
+    }
+
+    build.each do |opt|
+      hsh["options"] << {
+        "option" => "--"+opt.name,
+        "description" => opt.description
+      }
+    end
+
+    if rack.directory?
+      rack.children.each do |keg|
+        next if keg.basename.to_s == '.DS_Store'
+        tab = Tab.for_keg keg
+
+        hsh["installed"] << {
+          "version" => keg.basename.to_s,
+          "used_options" => tab.used_options,
+          "built_as_bottle" => tab.built_bottle
+        }
+      end
+    end
+
+    hsh
+
   end
 
 protected
@@ -478,23 +521,30 @@ protected
     if ARGV.verbose?
       safe_system cmd, *args
     else
+      @exec_count ||= 0
+      @exec_count += 1
+      logd = HOMEBREW_LOGS/name
+      logfn = "#{logd}/%02d.%s" % [@exec_count, File.basename(cmd).split(' ').first]
+      mkdir_p(logd)
+
       rd, wr = IO.pipe
       pid = fork do
+        ENV['VERBOSE'] = '1' # helps with many tool's logging outputs
         rd.close
         $stdout.reopen wr
         $stderr.reopen wr
         args.collect!{|arg| arg.to_s}
         exec(cmd, *args) rescue nil
+        puts "Failed to execute: #{cmd}"
         exit! 1 # never gets here unless exec threw or failed
       end
       wr.close
-      out = ''
-      out << rd.read until rd.eof?
+
+      f = File.open(logfn, 'w')
+      f.write(rd.read) until rd.eof?
+
       Process.wait
-      unless $?.success?
-        puts out
-        raise
-      end
+      raise unless $?.success?
     end
 
     removed_ENV_variables.each do |key, value|
@@ -502,7 +552,21 @@ protected
     end if removed_ENV_variables
 
   rescue
+    if f
+      f.flush
+      Kernel.system "/usr/bin/tail -n 5 #{logfn}"
+      require 'cmd/--config'
+      $f = f
+      def Homebrew.puts(*foo); $f.puts *foo end
+      f.puts
+      Homebrew.dump_build_config
+      class << Homebrew; undef :puts end
+    else
+      puts "No logs recorded :(" unless ARGV.verbose?
+    end
     raise BuildError.new(self, cmd, args, $?)
+  ensure
+    f.close if f
   end
 
 public
@@ -643,6 +707,14 @@ private
       @stable.mirror(val)
     end
 
+    def environments
+      @environments ||= []
+    end
+
+    def env *settings
+      environments.concat [settings].flatten
+    end
+
     def dependencies
       @dependencies ||= DependencyCollector.new
     end
@@ -682,7 +754,8 @@ private
       end
       @skip_clean_paths ||= []
       [paths].flatten.each do |p|
-        @skip_clean_paths << p.to_s unless @skip_clean_paths.include? p.to_s
+        p = p.to_s unless p == :la
+        @skip_clean_paths << p unless @skip_clean_paths.include? p
       end
     end
 
