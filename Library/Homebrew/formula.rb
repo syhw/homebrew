@@ -3,7 +3,6 @@ require 'dependencies'
 require 'formula_support'
 require 'hardware'
 require 'bottles'
-require 'extend/fileutils'
 require 'patches'
 require 'compilers'
 require 'build_environment'
@@ -529,7 +528,6 @@ protected
 
       rd, wr = IO.pipe
       pid = fork do
-        ENV['VERBOSE'] = '1' # helps with many tool's logging outputs
         rd.close
         $stdout.reopen wr
         $stderr.reopen wr
@@ -554,7 +552,7 @@ protected
   rescue
     if f
       f.flush
-      Kernel.system "/usr/bin/tail -n 5 #{logfn}"
+      Kernel.system "/usr/bin/tail -n 5 #{logfn}" unless ARGV.verbose?
       require 'cmd/--config'
       $f = f
       def Homebrew.puts(*foo); $f.puts *foo end
