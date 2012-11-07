@@ -546,10 +546,11 @@ protected
         f.puts
         require 'cmd/--config'
         Homebrew.write_build_config(f)
-        raise BuildError.new(self, cmd, args, $?)
+        raise ErrorDuringExecution
       end
     end
-
+  rescue ErrorDuringExecution => e
+    raise BuildError.new(self, cmd, args, $?)
   ensure
     f.close if f
     removed_ENV_variables.each do |key, value|
@@ -720,19 +721,7 @@ private
     end
 
     def conflicts_with formula, opts={}
-      message = <<-EOS.undent
-      #{formula} cannot be installed alongside #{name.downcase}.
-      EOS
-      message << "This is because #{opts[:because]}\n" if opts[:because]
-      unless ARGV.force? then message << <<-EOS.undent
-        Please `brew unlink #{formula}` before continuing. Unlinking removes
-        the formula's symlinks from #{HOMEBREW_PREFIX}. You can link the
-        formula again after the install finishes. You can --force this install
-        but the build may fail or cause obscure side-effects in the end-binary.
-        EOS
-      end
-
-      dependencies.add ConflictRequirement.new(formula, message)
+      dependencies.add ConflictRequirement.new(formula, name, opts)
     end
 
     def skip_clean *paths
