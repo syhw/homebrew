@@ -48,7 +48,10 @@ class Vim < Formula
                           "--with-tlib=ncurses",
                           "--enable-cscope",
                           "--with-features=huge",
-                          *language_opts
+                          "--enable-wide-chars", 
+                          "--enable-pythoninterp", 
+                          "--with-python-config-dir=/usr/local/Cellar/python/2.7.2/Frameworks/Python.framework/Versions/2.7/lib/python2.7/config/",
+                          "--with-compiledby='syhw <[gabriel.synnaeve@gmail.com]>'"
     system "make"
     # If stripping the binaries is not enabled, vim will segfault with
     # statically-linked interpreters like ruby
