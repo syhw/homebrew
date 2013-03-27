@@ -14,7 +14,6 @@ class Go < Formula
 
   if build.head?
     fails_with :clang do
-      build 425
       cause "clang: error: no such file or directory: 'libgcc.a'"
     end
   end
@@ -83,9 +82,9 @@ class Go < Formula
     prefix.install(Dir['*'] - ['include'])
   end
 
-  def test
+  test do
     cd "#{prefix}/src" do
-      system './run.bash --no-rebuild'
+      system "./run.bash", "--no-rebuild"
     end
   end
 end
