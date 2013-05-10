@@ -2,13 +2,15 @@ require 'formula'
 
 class Nginx < Formula
   homepage 'http://nginx.org/'
-  url 'http://nginx.org/download/nginx-1.2.8.tar.gz'
-  sha1 'b8c193d841538c3c443d262a2ab815a9ce1faaf6'
+  url 'http://nginx.org/download/nginx-1.4.1.tar.gz'
+  sha1 '9c72838973572323535dae10f4e412d671b27a7e'
 
   devel do
-    url 'http://nginx.org/download/nginx-1.3.15.tar.gz'
-    sha1 '16488c527078e26c32b0e467120501abf927fc8f'
+    url 'http://nginx.org/download/nginx-1.5.0.tar.gz'
+    sha1 '4f61368d6a0e340d04d116400616bf3179463df2'
   end
+
+  head 'svn://svn.nginx.org/nginx/trunk/'
 
   env :userpaths
 
@@ -17,8 +19,8 @@ class Nginx < Formula
   option 'with-passenger', 'Compile with support for Phusion Passenger module'
   option 'with-webdav', 'Compile with support for WebDAV module'
   option 'with-debug', 'Compile with support for debug log'
-
-  option 'with-spdy', 'Compile with support for SPDY module' if build.devel?
+  option 'with-spdy', 'Compile with support for SPDY module'
+  option 'with-gunzip', 'Compile with support for gunzip module'
 
   skip_clean 'logs'
 
@@ -56,33 +58,50 @@ class Nginx < Formula
             "--http-fastcgi-temp-path=#{var}/run/nginx/fastcgi_temp",
             "--http-uwsgi-temp-path=#{var}/run/nginx/uwsgi_temp",
             "--http-scgi-temp-path=#{var}/run/nginx/scgi_temp",
-            "--http-log-path=#{var}/log/nginx"
+            "--http-log-path=#{var}/log/nginx",
+            "--with-http_gzip_static_module"
           ]
 
     args << passenger_config_args if build.include? 'with-passenger'
     args << "--with-http_dav_module" if build.include? 'with-webdav'
     args << "--with-debug" if build.include? 'with-debug'
+    args << "--with-http_spdy_module" if build.include? 'with-spdy'
+    args << "--with-http_gunzip_module" if build.include? 'with-gunzip'
 
-    if build.devel?
-      args << "--with-http_spdy_module" if build.include? 'with-spdy'
+    if build.head?
+      system "./auto/configure", *args
+    else
+      system "./configure", *args
     end
-
-    system "./configure", *args
     system "make"
     system "make install"
     man8.install "objs/nginx.8"
     (var/'run/nginx').mkpath
 
+    # nginx’s docroot is #{prefix}/html, this isn't useful, so we symlink it
+    # to #{HOMEBREW_PREFIX}/var/www. The reason we symlink instead of patching
+    # is so the user can redirect it easily to something else if they choose.
     prefix.cd do
       dst = HOMEBREW_PREFIX/"var/www"
       if not dst.exist?
+        dst.dirname.mkpath
         mv "html", dst
-        dst.dirname.mkdir_p
       else
         rm_rf "html"
         dst.mkpath
       end
       Pathname.new("#{prefix}/html").make_relative_symlink(dst)
+    end
+
+    # for most of this formula’s life the binary has been placed in sbin
+    # and Homebrew used to suggest the user copy the plist for nginx to their
+    # ~/Library/LaunchAgents directory. So we need to have a symlink there
+    # for such cases
+    if (HOMEBREW_CELLAR/'nginx').subdirs.any?{|d| (d/:sbin).directory? }
+      sbin.mkpath
+      sbin.cd do
+        (sbin/'nginx').make_relative_symlink(bin/'nginx')
+      end
     end
   end
 
@@ -111,7 +130,7 @@ class Nginx < Formula
         <false/>
         <key>ProgramArguments</key>
         <array>
-            <string>#{opt_prefix}/sbin/nginx</string>
+            <string>#{opt_prefix}/bin/nginx</string>
             <string>-g</string>
             <string>daemon off;</string>
         </array>

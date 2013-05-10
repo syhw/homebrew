@@ -6,8 +6,8 @@ class Lilypond < Formula
   sha1 '1eb3b0e5c117a8669dba19ab28f933351e51e39a'
 
   devel do
-    url  'http://download.linuxaudio.org/lilypond/source/v2.17/lilypond-2.17.15.tar.gz'
-    sha1 'e906fb88e1f3d64b614e05f5d875077e225c9097'
+    url  'http://download.linuxaudio.org/lilypond/source/v2.17/lilypond-2.17.17.tar.gz'
+    sha1 'b0d2504d9201c9ccfb352c5b81a154bd09268b47'
   end
 
   env :std
@@ -69,7 +69,6 @@ class Lilypond < Formula
       \\header { title = "Do-Re-Mi" }
       { c' d' e' }
     EOS
-    lilykeg = Formula.factory('lilypond').linked_keg
-    system "#{lilykeg}/bin/lilypond test.ly"
+    system "#{bin}/lilypond", "test.ly"
   end
 end

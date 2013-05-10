@@ -6,8 +6,8 @@ require 'formula'
 # `brew install python`.
 
 class Distribute < Formula
-  url 'https://pypi.python.org/packages/source/d/distribute/distribute-0.6.35.tar.gz'
-  sha1 'a928104ea1bd1f85c35de6d0d5f1628d2602ac66'
+  url 'https://pypi.python.org/packages/source/d/distribute/distribute-0.6.38.tar.gz'
+  sha1 'dcd9d17db4e2df132f5c9c2e88c52d57ff6ff541'
 end
 
 class Pip < Formula
@@ -18,8 +18,8 @@ end
 
 class Python3 < Formula
   homepage 'http://www.python.org/'
-  url 'http://python.org/ftp/python/3.3.0/Python-3.3.0.tar.bz2'
-  sha1 '3e1464bc2c1dfa74287bc58da81168f50b0ae5c7'
+  url 'http://python.org/ftp/python/3.3.1/Python-3.3.1.tar.bz2'
+  sha1 'bec78674847a4dacc4717c93b32b6b07adb90afe'
   VER='3.3'  # The <major>.<minor> is used so often.
 
   depends_on 'pkg-config' => :build
@@ -50,6 +50,19 @@ class Python3 < Formula
     prefix/"Frameworks/Python.framework/Versions/#{VER}/lib"
   end
 
+  fails_with :llvm do
+    build '2336'
+    cause <<-EOS.undent
+      Could not find platform dependent libraries <exec_prefix>
+      Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]
+      python.exe(14122) malloc: *** mmap(size=7310873954244194304) failed (error code=12)
+      *** error: can't allocate region
+      *** set a breakpoint in malloc_error_break to debug
+      Could not import runpy module
+      make: *** [pybuilddir.txt] Segmentation fault: 11
+    EOS
+  end
+
   def install
     # Unset these so that installing pip and distribute puts them where we want
     # and not into some other Python the user has installed.
@@ -74,7 +87,9 @@ class Python3 < Formula
     distutils_fix_stdenv
 
     # Python does not need all of X11, these bundled Headers are enough
-    ENV.append 'CPPFLAGS', "-I#{MacOS.sdk_path}/System/Library/Frameworks/Tk.framework/Versions/8.5/Headers" unless MacOS::CLT.installed?
+    unless MacOS::CLT.installed?
+      ENV.append 'CPPFLAGS', "-I#{MacOS.sdk_path}/System/Library/Frameworks/Tk.framework/Versions/8.5/Headers"
+    end
 
     # Allow sqlite3 module to load extensions: http://docs.python.org/library/sqlite3.html#f1
     inreplace "setup.py", 'sqlite_defines.append(("SQLITE_OMIT_LOAD_EXTENSION", "1"))', 'pass'

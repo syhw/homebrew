@@ -1,4 +1,5 @@
 require 'cmd/missing'
+require 'version'
 
 class Volumes
   def initialize
@@ -204,7 +205,7 @@ def check_for_broken_symlinks
   Keg::PRUNEABLE_DIRECTORIES.each do |d|
     next unless d.directory?
     d.find do |pn|
-      broken_symlinks << pn if pn.symlink? and pn.readlink.expand_path.to_s =~ /^#{HOMEBREW_PREFIX}/ and not pn.exist?
+      broken_symlinks << pn if pn.symlink? and pn.readlink.expand_path.to_s =~ /^#{HOMEBREW_PREFIX}/o and not pn.exist?
     end
   end
   unless broken_symlinks.empty? then <<-EOS.undent
@@ -307,6 +308,14 @@ def __check_subdir_access base
   end
 end
 
+def check_access_share_locale
+  __check_subdir_access 'share/locale'
+end
+
+def check_access_share_man
+  __check_subdir_access 'share/man'
+end
+
 def check_access_usr_local
   return unless HOMEBREW_PREFIX.to_s == '/usr/local'
 
@@ -322,51 +331,21 @@ def check_access_usr_local
   end
 end
 
-def check_access_share_locale
-  __check_subdir_access 'share/locale'
-end
+%w{include etc lib lib/pkgconfig share}.each do |d|
+  class_eval <<-EOS, __FILE__, __LINE__ + 1
+    def check_access_#{d.sub("/", "_")}
+      if (dir = HOMEBREW_PREFIX+'#{d}').exist? && !dir.writable_real?
+        <<-EOF.undent
+        \#{dir} isn't writable.
+        This can happen if you "sudo make install" software that isn't managed by
+        by Homebrew. If a brew tries to write a file to this directory, the
+        install will fail during the link step.
 
-def check_access_share_man
-  __check_subdir_access 'share/man'
-end
-
-def __check_folder_access base, msg
-  folder = HOMEBREW_PREFIX+base
-  if folder.exist? and not folder.writable_real?
-    <<-EOS.undent
-      #{folder} isn't writable.
-      This can happen if you "sudo make install" software that isn't managed
-      by Homebrew.
-
-      #{msg}
-
-      You should probably `chown` #{folder}
+        You should probably `chown` \#{dir}
+        EOF
+      end
+    end
     EOS
-  end
-end
-
-def check_access_pkgconfig
-  __check_folder_access 'lib/pkgconfig',
-  'If a brew tries to write a .pc file to this directory, the install will\n'+
-  'fail during the link step.'
-end
-
-def check_access_include
-  __check_folder_access 'include',
-  'If a brew tries to write a header file to this directory, the install will\n'+
-  'fail during the link step.'
-end
-
-def check_access_etc
-  __check_folder_access 'etc',
-  'If a brew tries to write a file to this directory, the install will\n'+
-  'fail during the link step.'
-end
-
-def check_access_share
-  __check_folder_access 'share',
-  'If a brew tries to write a file to this directory, the install will\n'+
-  'fail during the link step.'
 end
 
 def check_access_logs
@@ -384,12 +363,11 @@ def check_access_logs
   end
 end
 
-def check_usr_bin_ruby
-  if /^1\.9/.match RUBY_VERSION
-    <<-EOS.undent
-      Ruby version #{RUBY_VERSION} is unsupported.
-      Homebrew is developed and tested on Ruby 1.8.x, and may not work correctly
-      on other Rubies. Patches are accepted as long as they don't break on 1.8.x.
+def check_ruby_version
+  if RUBY_VERSION.to_f > 1.8 then <<-EOS.undent
+    Ruby version #{RUBY_VERSION} is unsupported.
+    Homebrew is developed and tested on Ruby 1.8.x, and may not work correctly
+    on other Rubies. Patches are accepted as long as they don't break on 1.8.x.
     EOS
   end
 end
@@ -938,13 +916,14 @@ def check_for_leopard_ssl
 end
 
 def check_git_version
-  # see https://github.com/blog/642-smart-http-support
+  # https://help.github.com/articles/https-cloning-errors
   return unless which "git"
-  `git --version`.chomp =~ /git version (\d)\.(\d)\.(\d)/
 
-  if $2.to_i < 6 or $2.to_i == 6 and $3.to_i < 6 then <<-EOS.undent
+  `git --version`.chomp =~ /git version ((?:\d+\.?)+)/
+
+  if Version.new($1) < Version.new("1.7.10") then <<-EOS.undent
     An outdated version of Git was detected in your PATH.
-    Git 1.6.6 or newer is required to perform checkouts over HTTP from GitHub.
+    Git 1.7.10 or newer is required to perform checkouts over HTTPS from GitHub.
     Please upgrade: brew upgrade git
     EOS
   end
@@ -974,9 +953,17 @@ def check_for_bad_python_symlink
 end
 
 def check_for_non_prefixed_coreutils
-  gnubin = `brew --prefix coreutils`.chomp + "/libexec/gnubin"
+  gnubin = Formula.factory('coreutils').prefix.to_s + "/libexec/gnubin"
   if paths.include? gnubin then <<-EOS.undent
     Putting non-prefixed coreutils in your path can cause gmp builds to fail.
+    EOS
+  end
+end
+
+def check_for_non_prefixed_findutils
+  default_names = Tab.for_formula('findutils').used_options.include? 'default-names'
+  if default_names then <<-EOS.undent
+    Putting non-prefixed findutils in your path can cause python builds to fail.
     EOS
   end
 end
@@ -1122,7 +1109,7 @@ module Homebrew extend self
       end
     end
 
-    puts "Your system is raring to brew." unless Homebrew.failed?
+    puts "Your system is ready to brew." unless Homebrew.failed?
   end
 
   def inject_dump_stats checks
