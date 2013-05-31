@@ -28,10 +28,14 @@ class AbstractDownloadStrategy
   def quiet_safe_system *args
     safe_system(*expand_safe_system_args(args))
   end
+
+  # All download strategies are expected to implement these methods
+  def fetch; end
+  def stage; end
+  def cached_location; end
 end
 
 class CurlDownloadStrategy < AbstractDownloadStrategy
-  attr_reader :tarball_path
   attr_accessor :local_bottle_path
 
   def initialize name, package
@@ -69,10 +73,20 @@ class CurlDownloadStrategy < AbstractDownloadStrategy
 
     ohai "Downloading #{@url}"
     unless @tarball_path.exist?
+      had_incomplete_download = @temporary_path.exist?
       begin
         _fetch
       rescue ErrorDuringExecution
-        raise CurlDownloadStrategyError, "Download failed: #{@url}"
+        # 33 == range not supported
+        # try wiping the incomplete download and retrying once
+        if $?.exitstatus == 33 && had_incomplete_download
+          ohai "Trying a full download"
+          @temporary_path.unlink
+          had_incomplete_download = false
+          retry
+        else
+          raise CurlDownloadStrategyError, "Download failed: #{@url}"
+        end
       end
       ignore_interrupts { @temporary_path.rename(@tarball_path) }
     else

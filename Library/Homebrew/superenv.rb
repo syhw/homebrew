@@ -93,7 +93,7 @@ class << ENV
       "gcc"
     elsif ENV['HOMEBREW_CC']
       case ENV['HOMEBREW_CC']
-        when 'clang', 'gcc' then ENV['HOMEBREW_CC']
+        when 'clang', 'gcc', 'gcc-4.0' then ENV['HOMEBREW_CC']
         when 'llvm', 'llvm-gcc' then 'llvm-gcc'
       else
         opoo "Invalid value for HOMEBREW_CC: #{ENV['HOMEBREW_CC']}"
@@ -103,7 +103,12 @@ class << ENV
       raise
     end
   rescue
-    "clang"
+    case MacOS.default_compiler
+    when :clang   then 'clang'
+    when :llvm    then 'llvm-gcc'
+    when :gcc     then 'gcc'
+    when :gcc_4_0 then 'gcc-4.0'
+    end
   end
 
   def determine_path
@@ -182,7 +187,17 @@ class << ENV
 
   def determine_cccfg
     s = ""
-    s << 'b' if ARGV.build_bottle?
+    if ARGV.build_bottle?
+      s << if Hardware::CPU.type == :intel
+        if Hardware::CPU.is_64_bit?
+          'bi6'
+        else
+          'bi'
+        end
+      else
+        'b'
+      end
+    end
     # Fix issue with sed barfing on unicode characters on Mountain Lion
     s << 's' if MacOS.version >= :mountain_lion
     # Fix issue with 10.8 apr-1-config having broken paths
