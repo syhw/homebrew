@@ -7,12 +7,14 @@
 # --cleanup:      Clean the Homebrew directory. Very dangerous. Use with care.
 # --skip-setup:   Don't check the local system is setup correctly.
 # --junit:        Generate a JUnit XML test results file.
+# --email:        Generate an email subject file.
 
 require 'formula'
 require 'utils'
 require 'date'
 require 'erb'
 
+EMAIL_SUBJECT_FILE = "brew-test-bot.email.txt"
 HOMEBREW_CONTRIBUTED_CMDS = HOMEBREW_REPOSITORY + "Library/Contributions/cmd/"
 
 class Step
@@ -249,9 +251,8 @@ class Test
 
     test "brew audit #{formula}"
     test "brew fetch #{dependencies}" unless dependencies.empty?
-    test "brew fetch --build-bottle #{formula}"
+    test "brew fetch --force --build-bottle #{formula}"
     test "brew uninstall #{formula}" if formula_object.installed?
-    test "brew install --verbose #{dependencies}" unless dependencies.empty?
     test "brew install --verbose --build-bottle #{formula}"
     return unless steps.last.passed?
     bottle_step = test "brew bottle #{formula}", :puts_output_on_success => true
@@ -353,6 +354,12 @@ if Pathname.pwd == HOMEBREW_PREFIX and ARGV.include? "--cleanup"
   odie 'cannot use --cleanup from HOMEBREW_PREFIX as it will delete all output.'
 end
 
+if ARGV.include? "--email"
+  File.open EMAIL_SUBJECT_FILE, 'w' do |file|
+    file.write "FAILED"
+  end
+end
+
 tests = []
 any_errors = false
 if ARGV.named.empty?
@@ -374,6 +381,26 @@ if ARGV.include? "--junit"
   open("brew-test-bot.xml", "w") do |xml|
     # Remove empty lines and null characters from ERB result.
     xml.write erb.result(binding).gsub(/^\s*$\n|\000/, '')
+  end
+end
+
+if ARGV.include? "--email"
+  failed_steps = []
+  tests.each do |test|
+    test.steps.each do |step|
+      next unless step.failed?
+      failed_steps << step.command.gsub(/(brew|--verbose) /, '')
+    end
+  end
+
+  if failed_steps.empty?
+    email_subject = 'PASSED'
+  else
+    email_subject = "#{failed_steps.join ', '}"
+  end
+
+  File.open EMAIL_SUBJECT_FILE, 'w' do |file|
+    file.write email_subject
   end
 end
 

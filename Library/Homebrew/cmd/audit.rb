@@ -134,6 +134,7 @@ class FormulaAuditor
         dep_f = dep.to_formula
       rescue FormulaUnavailableError
         problem "Can't find dependency #{dep.name.inspect}."
+        next
       end
 
       dep.options.reject do |opt|
@@ -144,10 +145,14 @@ class FormulaAuditor
 
       case dep.name
       when *BUILD_TIME_DEPS
-        # Build deps should be tagged
-        problem <<-EOS.undent unless dep.tags.any? || f.name =~ /automake/ && dep.name == 'autoconf'
-        #{dep} dependency should be "depends_on '#{dep}' => :build"
-        EOS
+        # TODO: this should really be only dep.build? but maybe some formula
+        # depends on the current behavior to be audit-clean?
+        next if dep.tags.any?
+        next if f.name =~ /automake/ && dep.name == 'autoconf'
+        # This is actually a libltdl dep that gets converted to a non-build time
+        # libtool dep, but I don't of a good way to encode this in the dep object
+        next if f.name == 'imagemagick' && dep.name == 'libtool'
+        problem %{#{dep} dependency should be "depends_on '#{dep}' => :build"}
       when "git", "ruby", "emacs", "mercurial"
         problem <<-EOS.undent
           Don't use #{dep} as a dependency. We allow non-Homebrew
@@ -161,13 +166,13 @@ class FormulaAuditor
              bindings for 2.x and 3.x in parallel and much more.
           EOS
       when 'gfortran'
-        problem "Use ENV.fortran during install instead of depends_on 'gfortran'"
+        problem "Use `depends_on :fortran` instead of `depends_on 'gfortran'`"
       when 'open-mpi', 'mpich2'
         problem <<-EOS.undent
           There are multiple conflicting ways to install MPI. Use an MPIDependency:
-            depends_on MPIDependency.new(<lang list>)
+            depends_on :mpi => [<lang list>]
           Where <lang list> is a comma delimited list that can include:
-            :cc, :cxx, :f90, :f77
+            :cc, :cxx, :f77, :f90
           EOS
       end
     end
@@ -461,6 +466,10 @@ class FormulaAuditor
 
     if text =~ /^def (\w+).*$/
       problem "Define method #{$1.inspect} in the class body, not at the top-level"
+    end
+
+    if text =~ /ENV.fortran/
+      problem "Use `depends_on :fortran` instead of `ENV.fortran`"
     end
   end
 
