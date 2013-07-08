@@ -261,16 +261,24 @@ end
 module GitHub extend self
   ISSUES_URI = URI.parse("https://api.github.com/legacy/issues/search/mxcl/homebrew/open/")
 
+  Error = Class.new(StandardError)
+
   def open url, headers={}, &block
     default_headers = {'User-Agent' => HOMEBREW_USER_AGENT}
     default_headers['Authorization'] = "token #{HOMEBREW_GITHUB_API_TOKEN}" if HOMEBREW_GITHUB_API_TOKEN
     Kernel.open(url, default_headers.merge(headers), &block)
   rescue OpenURI::HTTPError => e
     if e.io.meta['x-ratelimit-remaining'].to_i <= 0
-      raise "GitHub #{Utils::JSON.load(e.io.read)['message']}"
+      raise <<-EOS.undent
+        GitHub #{Utils::JSON.load(e.io.read)['message']}
+        You may want to create an API token: https://github.com/settings/applications
+        and then set HOMEBREW_GITHUB_API_TOKEN.
+        EOS
     else
       raise e
     end
+  rescue SocketError => e
+    raise Error, "Failed to connect to: #{url}\n#{e.message}"
   end
 
   def each_issue_matching(query, &block)

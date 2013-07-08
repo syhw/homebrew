@@ -235,7 +235,11 @@ class FormulaAuditor
         problem "Don't use /download in SourceForge urls (url is #{p})."
       end
 
-      if p =~ %r[^http://prdownloads\.]
+      if p =~ %r[^https?://sourceforge\.]
+        problem "Use http://downloads.sourceforge.net to get geolocation (url is #{p})."
+      end
+
+      if p =~ %r[^https?://prdownloads\.]
         problem "Don't use prdownloads in SourceForge urls (url is #{p}).\n" +
                 "\tSee: http://librelist.com/browser/homebrew/2011/1/12/prdownloads-is-bad/"
       end
@@ -276,19 +280,26 @@ class FormulaAuditor
         problem "Invalid or missing #{spec} version"
       else
         version_text = s.version unless s.version.detected_from_url?
-        version_url = Version.parse(s.url)
+        version_url = Version.detect(s.url, s.specs)
         if version_url.to_s == version_text.to_s && s.version.instance_of?(Version)
           problem "#{spec} version #{version_text} is redundant with version scanned from URL"
         end
       end
 
+      if s.version.to_s =~ /^v/
+        problem "#{spec} version #{s.version} should not have a leading 'v'"
+      end
+
       cksum = s.checksum
       next if cksum.nil?
 
-      len = case cksum.hash_type
-        when :sha1 then 40
-        when :sha256 then 64
-        end
+      case cksum.hash_type
+      when :md5
+        problem "md5 checksums are deprecated, please use sha1 or sha256"
+        next
+      when :sha1   then len = 40
+      when :sha256 then len = 64
+      end
 
       if cksum.empty?
         problem "#{cksum.hash_type} is empty"
@@ -331,6 +342,20 @@ class FormulaAuditor
     # Commented-out cmake support from default template
     if (text =~ /# system "cmake/)
       problem "Commented cmake call found"
+    end
+
+    # Comments from default template
+    if (text =~ /# PLEASE REMOVE/)
+      problem "Please remove default template comments"
+    end
+    if (text =~ /# if this fails, try separate make\/make install steps/)
+      problem "Please remove default template comments"
+    end
+    if (text =~ /# if your formula requires any X11\/XQuartz components/)
+      problem "Please remove default template comments"
+    end
+    if (text =~ /# if your formula's build system can't parallelize/)
+      problem "Please remove default template comments"
     end
 
     # FileUtils is included in Formula
