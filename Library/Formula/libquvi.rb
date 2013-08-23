@@ -2,7 +2,7 @@ require 'formula'
 
 class LibquviScripts < Formula
   homepage 'http://quvi.sourceforge.net/'
-  url 'http://sourceforge.net/projects/quvi/files/0.4/libquvi-scripts/libquvi-scripts-0.4.14.tar.xz'
+  url 'http://downloads.sourceforge.net/project/quvi/0.4/libquvi-scripts/libquvi-scripts-0.4.14.tar.xz'
   sha1 'fe721c8d882c5c4a826f1339c79179c56bb0fe41'
 end
 
@@ -21,7 +21,7 @@ class Libquvi < Formula
       system "./configure", "--prefix=#{scripts}", "--with-nsfw"
       system "make install"
     end
-    ENV.append 'PKG_CONFIG_PATH', "#{scripts}/lib/pkgconfig", ':'
+    ENV.append_path 'PKG_CONFIG_PATH', "#{scripts}/lib/pkgconfig"
 
     # Lua 5.2 does not have a proper lua.pc
     ENV['liblua_CFLAGS'] = ' '

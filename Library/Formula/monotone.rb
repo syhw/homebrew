@@ -27,7 +27,7 @@ class Monotone < Formula
 
     Botan18.new.brew do
       args = ["--prefix=#{botan18_prefix}"]
-      args << "--cpu=x86_64" if MacOS.prefer_64_bit?
+      args << "--cpu=#{Hardware::CPU.arch_64_bit}" if MacOS.prefer_64_bit?
       system "./configure.py", *args
       system "make", "CXX=#{ENV.cxx}", "install"
     end
@@ -35,18 +35,15 @@ class Monotone < Formula
     ENV['botan_CFLAGS'] = "-I#{botan18_prefix}/include"
     ENV['botan_LIBS'] = "-L#{botan18_prefix}/lib -lbotan"
 
-    # Monotone only needs headers from Boost (it's templates all the way down!), so let's avoid
-    # building boost (which takes approximately forever) if it's not already installed.
+    # Monotone only needs headers from Boost, so let's avoid building the libraries.
     # This is suggested in the Monotone installation instructions.
 
     boost_prefix = buildpath/'boost'
-    boost = Formula.factory('boost')
-    unless boost.installed?
-      boost.brew do
-        boost_prefix.install Dir['*']
-        # Add header location to CPPFLAGS
-        ENV.append 'CPPFLAGS', "-I#{boost_prefix}"
-      end
+    boost = Formula.factory('boost149')
+    boost.brew do
+      boost_prefix.install Dir['*']
+      # Add header location to CPPFLAGS
+      ENV.append 'CPPFLAGS', "-I#{boost_prefix}"
     end
 
     system "./configure", "--disable-dependency-tracking",

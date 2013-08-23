@@ -55,7 +55,8 @@ class Cmd
   def tool
     @tool ||= case @arg0
     when 'ld' then 'ld'
-    when 'cc', 'c99', 'c89', 'cpp'
+    when 'cpp' then 'cpp'
+    when 'cc', 'c99', 'c89'
       # Ideally we would run `cx9`, however these tools are POSIX compliant
       # and don't support many flags. We need -isystem for instance, but also
       # reliability is generally much higher if we just get clang/gcc to do
@@ -66,7 +67,7 @@ class Cmd
       when /clang/
         'clang++'
       when /llvm-gcc/
-        'g++'
+        'llvm-g++-4.2'
       when /gcc(-4.2)?$/
         'g++-4.2'
       when /gcc-4.0/
@@ -164,7 +165,7 @@ class Cmd
       args << '-march=native' if tool =~ /clang/
     end
 
-    args += %w{-arch i386 -arch x86_64} if cccfg? 'u'
+    ENV['HOMEBREW_ARCHS'].split(',').each { |a| args << "-arch" << a } if cccfg? 'u'
     args << "-std=#{@arg0}" if @arg0 =~ /c[89]9/
     args
   end

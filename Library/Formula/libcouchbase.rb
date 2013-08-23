@@ -1,9 +1,9 @@
 require 'formula'
 
 class Libcouchbase < Formula
-  homepage 'http://couchbase.com/develop/c/current'
-  url 'http://packages.couchbase.com/clients/c/libcouchbase-2.0.6.tar.gz'
-  sha1 'ff9f36b07d2d9acd253aed86583461b5ecc69ad4'
+  homepage 'http://couchbase.com/communities/c'
+  url 'http://packages.couchbase.com/clients/c/libcouchbase-2.1.1.tar.gz'
+  sha1 'b4447768a90dcd86882b68c7c3b95c08178884a1'
 
   option 'with-libev-plugin', 'Build libev IO plugin (will pull libev dependency)'
   option 'without-libevent-plugin', 'Do not build libevent plugin (will remove libevent dependency)'
@@ -22,6 +22,6 @@ class Libcouchbase < Formula
   end
 
   def test
-    system "#{bin}/cbc-version"
+    system "#{bin}/cbc", "version"
   end
 end

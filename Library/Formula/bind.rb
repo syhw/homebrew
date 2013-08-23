@@ -2,15 +2,16 @@ require 'formula'
 
 class Bind < Formula
   homepage 'http://www.isc.org/software/bind/'
-  url 'ftp://ftp.isc.org/isc/bind9/9.9.3/bind-9.9.3.tar.gz'
-  sha1 '0d770a68ccdb98db7930951cf380d5c7ed9b5b67'
+  url 'http://ftp.isc.org/isc/bind9/9.9.3-P2/bind-9.9.3-P2.tar.gz'
+  sha1 'a0235692c488b3fadf54a15858b1f13ae2ab6979'
+  version '9.9.3-P2'
 
-  depends_on "openssl" if MacOS.version == :leopard
+  depends_on "openssl" if MacOS.version <= :leopard
 
   def install
     ENV.libxml2
     # libxml2 appends one inc dir to CPPFLAGS but bind ignores CPPFLAGS
-    ENV.append 'CFLAGS', ENV['CPPFLAGS']
+    ENV.append 'CFLAGS', ENV.cppflags
 
     ENV['STD_CDEFINES'] = '-DDIG_SIGCHASE=1'
 
@@ -22,7 +23,7 @@ class Bind < Formula
 
     # For Xcode-only systems we help a bit to find openssl.
     # If CLT.installed?, it evaluates to "/usr", which works.
-    args << "--with-openssl=#{MacOS.sdk_path.to_s}/usr" unless MacOS.version == :leopard
+    args << "--with-openssl=#{MacOS.sdk_path}/usr" unless MacOS.version <= :leopard
 
     system "./configure", *args
 

@@ -2,8 +2,8 @@ require 'formula'
 
 class Chruby < Formula
   homepage 'https://github.com/postmodern/chruby#readme'
-  url 'https://github.com/postmodern/chruby/archive/v0.3.5.tar.gz'
-  sha1 'a08254910d18c20fe979f6551bd0797e287f1e5e'
+  url 'https://github.com/postmodern/chruby/archive/v0.3.7.tar.gz'
+  sha1 '237903096f874f40749520d267fe35e2e3222bb3'
 
   head 'https://github.com/postmodern/chruby.git'
 
@@ -12,10 +12,9 @@ class Chruby < Formula
   end
 
   def caveats; <<-EOS.undent
-    Add the following to the /etc/profile.d/chruby.sh, ~/.bash_profile or
-    ~/.zprofile file:
+    Add the following to the ~/.bashrc or ~/.zshrc file:
 
-      source #{HOMEBREW_PREFIX}/opt/chruby/share/chruby/chruby.sh
+      source #{opt_prefix}/share/chruby/chruby.sh
 
     By default chruby will search for Rubies installed into /opt/rubies/ or
     ~/.rubies/. For non-standard installation locations, simply set the RUBIES
@@ -30,11 +29,12 @@ class Chruby < Formula
 
       RVM:   RUBIES=(~/.rvm/rubies/*)
       rbenv: RUBIES=(~/.rbenv/versions/*)
-      rbfu:  RUBIES=('~/.rbfu/rubies/*)
+      rbfu:  RUBIES=(~/.rbfu/rubies/*)
 
-    To enable auto-switching of Rubies specified by .ruby-version files:
+    To enable auto-switching of Rubies specified by .ruby-version files,
+    add the following to ~/.bashrc or ~/.zshrc:
 
-      source #{HOMEBREW_PREFIX}/opt/chruby/share/chruby/auto.sh
+      source #{opt_prefix}/share/chruby/auto.sh
     EOS
   end
 end

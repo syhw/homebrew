@@ -2,9 +2,9 @@ require 'formula'
 
 class Automake < Formula
   homepage 'http://www.gnu.org/software/automake/'
-  url 'http://ftpmirror.gnu.org/automake/automake-1.13.2.tar.gz'
-  mirror 'http://ftp.gnu.org/gnu/automake/automake-1.13.2.tar.gz'
-  sha1 '72ee9fcd180c54fd7c067155d85fa071a99c3ea3'
+  url 'http://ftpmirror.gnu.org/automake/automake-1.14.tar.gz'
+  mirror 'http://ftp.gnu.org/gnu/automake/automake-1.14.tar.gz'
+  sha1 '648f7a3cf8473ff6aa433c7721cab1c7fae8d06c'
 
   # Always needs a newer autoconf, even on Snow Leopard.
   depends_on 'autoconf'
@@ -14,6 +14,8 @@ class Automake < Formula
   end
 
   def install
+    ENV['PERL'] = '/usr/bin/perl'
+
     system "./configure", "--prefix=#{prefix}"
     system "make install"
 

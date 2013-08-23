@@ -16,9 +16,11 @@ class Cairo < Formula
 
   depends_on 'pkg-config' => :build
   depends_on 'xz'=> :build
+  # harfbuzz requires cairo-ft to build
+  depends_on 'freetype' if build.without? 'x'
   depends_on :libpng
   depends_on 'pixman'
-  depends_on 'glib' => :optional
+  depends_on 'glib' => :recommended
   depends_on :x11 if build.with? 'x'
 
   env :std if build.universal?
@@ -43,7 +45,7 @@ class Cairo < Formula
       args << '--enable-gobject=no'
     end
 
-    args << '--enable-xcb=no' if MacOS.version == :leopard
+    args << '--enable-xcb=no' if MacOS.version <= :leopard
 
     system "./configure", *args
     system "make install"

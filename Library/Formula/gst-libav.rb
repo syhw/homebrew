@@ -2,12 +2,13 @@ require 'formula'
 
 class GstLibav < Formula
   homepage 'http://gstreamer.freedesktop.org'
-  url 'http://gstreamer.freedesktop.org/src/gst-libav/gst-libav-1.0.7.tar.xz'
-  mirror 'http://ftp.osuosl.org/pub/blfs/svn/g/gst-libav-1.0.7.tar.xz'
-  sha256 'aefa679d14e7a6558673cfbf401b9c01f1903bb52e5dc08332e9001d25a7ba7a'
+  url 'http://gstreamer.freedesktop.org/src/gst-libav/gst-libav-1.0.9.tar.xz'
+  mirror 'http://ftp.osuosl.org/pub/blfs/svn/g/gst-libav-1.0.9.tar.xz'
+  sha256 '759641c0597c24191322f40945b363b75df299a539ff4086650be6193028189a'
 
   depends_on "pkg-config" => :build
   depends_on "xz" => :build
+  depends_on "yasm" => :build
   depends_on "gst-plugins-base"
 
   def install

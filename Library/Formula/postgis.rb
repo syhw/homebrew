@@ -2,8 +2,8 @@ require 'formula'
 
 class Postgis < Formula
   homepage 'http://postgis.net'
-  url 'http://download.osgeo.org/postgis/source/postgis-2.0.3.tar.gz'
-  sha1 '825c1718cf2603fa0f1c2de802989dff7239f9bc'
+  url 'http://download.osgeo.org/postgis/source/postgis-2.1.0.tar.gz'
+  sha1 'e8a428348e93f204fdf4838ebedcad9306b29a5e'
 
   head 'http://svn.osgeo.org/postgis/trunk/'
 
@@ -23,17 +23,11 @@ class Postgis < Formula
   depends_on 'json-c'
   depends_on 'gdal'
 
-  def postgres_realpath
+  def install
     # Follow the PostgreSQL linked keg back to the active Postgres installation
     # as it is common for people to avoid upgrading Postgres.
-    Formula.factory('postgresql').opt_prefix.realpath
-  end
+    postgres_realpath = Formula.factory('postgresql').opt_prefix.realpath
 
-  # Force GPP to be used when pre-processing SQL files. See:
-  #   http://trac.osgeo.org/postgis/ticket/1694
-  def patches; DATA end
-
-  def install
     ENV.deparallelize
 
     args = [
@@ -53,7 +47,6 @@ class Postgis < Formula
       "--disable-nls"
     ]
     args << '--with-gui' if build.include? 'with-gui'
-
 
     system './autogen.sh'
     system './configure', *args
@@ -81,7 +74,7 @@ class Postgis < Formula
     include.install Dir['stage/**/include/*']
 
     # Stand-alone SQL files will be installed the share folder
-    (share + 'postgis').install Dir['stage/**/contrib/postgis-2.0/*']
+    (share/'postgis').install Dir['stage/**/contrib/postgis-2.1/*']
 
     # Extension scripts
     bin.install %w[
@@ -99,45 +92,21 @@ class Postgis < Formula
   end
 
   def caveats;
+    pg = Formula.factory('postgresql').opt_prefix
     <<-EOS.undent
       To create a spatially-enabled database, see the documentation:
-        http://postgis.refractions.net/documentation/manual-2.0/postgis_installation.html#create_new_db_extensions
-      and to upgrade your existing spatial databases, see here:
-        http://postgis.refractions.net/documentation/manual-2.0/postgis_installation.html#upgrading
+        http://postgis.net/docs/manual-2.1/postgis_installation.html#create_new_db_extensions
+      If you are currently using PostGIS 2.0+, you can go the soft upgrade path:
+        ALTER EXTENSION postgis UPDATE TO "2.1.0";
+      Users of 1.5 and below will need to go the hard-upgrade path, see here:
+        http://postgis.net/docs/manual-2.1/postgis_installation.html#upgrading
 
       PostGIS SQL scripts installed to:
         #{HOMEBREW_PREFIX}/share/postgis
       PostGIS plugin libraries installed to:
-        #{pg = Formula.factory('postgresql').opt_prefix}/lib
+        #{pg}/lib
       PostGIS extension modules installed to:
         #{pg}/share/postgresql/extension
       EOS
   end
 end
-__END__
-Force usage of GPP as the SQL pre-processor as Clang chokes.
-
-diff --git a/configure.ac b/configure.ac
-index 136a1d6..c953c69 100644
---- a/configure.ac
-+++ b/configure.ac
-@@ -31,17 +31,8 @@ AC_SUBST([ANT])
- dnl
- dnl SQL Preprocessor
- dnl
--AC_PATH_PROG([CPPBIN], [cpp], [])
--if test "x$CPPBIN" != "x"; then
--  SQLPP="${CPPBIN} -traditional-cpp -P"
--else
--  AC_PATH_PROG([GPP], [gpp_], [])
--  if test "x$GPP" != "x"; then
--    SQLPP="${GPP} -C -s \'" dnl Use better string support
--  else
--    SQLPP="${CPP} -traditional-cpp"
--  fi
--fi
-+AC_PATH_PROG([GPP], [gpp], [])
-+SQLPP="${GPP} -C -s \'" dnl Use better string support
- AC_SUBST([SQLPP])
- 
- dnl

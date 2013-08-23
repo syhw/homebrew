@@ -2,39 +2,59 @@ require 'formula'
 
 class Vim < Formula
   homepage 'http://www.vim.org/'
-  # This package tracks debian-unstable: http://packages.debian.org/unstable/vim
-  url 'http://ftp.de.debian.org/debian/pool/main/v/vim/vim_7.3.923.orig.tar.gz'
-  sha1 'f308d219dd9c6b56e84109ace4e7487a101088f5'
+  # Get the base 7.4 tarball from Vim.org. But once patches start again, go
+  # back to tracking Debian unstable here:
+  # http://ftp.de.debian.org/debian/pool/main/v/vim/
+  url 'http://ftp.vim.org/pub/vim/unix/vim-7.4.tar.bz2'
+  sha1 '601abf7cc2b5ab186f40d8790e542f86afca86b7'
+
   head 'https://vim.googlecode.com/hg/'
 
-  env :std # To find interpreters
-
-  depends_on :hg => :build if build.head?
-
-  LANGUAGES         = %w(lua mzscheme perl python python3 tcl ruby)
-  DEFAULT_LANGUAGES = %w(ruby python)
+  # We only have special support for finding depends_on :python, but not yet for
+  # :ruby, :perl etc., so we use the standard environment that leaves the
+  # PATH as the user has set it right now.
+  env :std
 
   option "override-system-vi", "Override system vi"
-  LANGUAGES.each do |language|
+  option "disable-nls", "Build vim without National Language Support (translated messages, keymaps)"
+
+  LANGUAGES_OPTIONAL = %w(lua mzscheme perl tcl)
+  LANGUAGES_DEFAULT  = %w(ruby python)
+
+  LANGUAGES_OPTIONAL.each do |language|
     option "with-#{language}", "Build vim with #{language} support"
+  end
+  LANGUAGES_DEFAULT.each do |language|
     option "without-#{language}", "Build vim without #{language} support"
   end
 
-  option "disable-nls", "Build vim without National Language Support (translated messages, keymaps)"
+  depends_on :hg => :build if build.head?
+  depends_on :python => :recommended
 
   def install
     ENV['LUA_PREFIX'] = HOMEBREW_PREFIX
 
-    language_opts = LANGUAGES.map do |language|
-      if DEFAULT_LANGUAGES.include? language and !build.include? "without-#{language}"
-        "--enable-#{language}interp"
-      elsif build.include? "with-#{language}"
-        "--enable-#{language}interp"
-      end
-    end.compact
+    opts = []
+    opts += LANGUAGES_OPTIONAL.map do |language|
+      "--enable-#{language}interp" if build.with? language
+    end
+    opts += LANGUAGES_DEFAULT.map do |language|
+      "--enable-#{language}interp" unless build.without? language
+    end
 
-    opts = language_opts
     opts << "--disable-nls" if build.include? "disable-nls"
+
+    if python
+      if python.brewed?
+        # Avoid that vim always links System's Python even if configure tells us
+        # it has found a brewed Python. Verify with `otool -L`.
+        ENV.prepend 'LDFLAGS', "-F#{python.framework}"
+      elsif python.from_osx? && !MacOS::CLT.installed?
+        # Avoid `Python.h not found` on 10.8 with Xcode-only
+        ENV.append 'CFLAGS', "-I#{python.incdir}", ' '
+        # opts << "--with-python-config-dir=#{python.libdir}"
+      end
+    end
 
     # XXX: Please do not submit a pull request that hardcodes the path
     # to ruby: vim can be compiled against 1.8.x or 1.9.3-p385 and up.

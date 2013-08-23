@@ -1,9 +1,9 @@
 require 'formula'
 
 class SonarRunner < Formula
-  homepage 'http://docs.codehaus.org/display/SONAR/Installing+and+Configuring+Sonar+Runner'
-  url 'http://repo1.maven.org/maven2/org/codehaus/sonar/runner/sonar-runner-dist/2.1/sonar-runner-dist-2.1.zip'
-  sha1 '98790f6c8c49fc78419fa2e81f9cc42d6fff510c'
+  homepage 'http://docs.codehaus.org/display/SONAR/Installing+and+Configuring+SonarQube+Runner'
+  url 'http://repo1.maven.org/maven2/org/codehaus/sonar/runner/sonar-runner-dist/2.3/sonar-runner-dist-2.3.zip'
+  sha1 '802312f74f55d671f6ae08f21e965fd66ca1853e'
 
   def install
     # Remove windows files

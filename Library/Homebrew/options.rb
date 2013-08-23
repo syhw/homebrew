@@ -15,16 +15,12 @@ class Option
   end
   alias_method :to_str, :to_s
 
-  def to_json
-    flag.inspect
-  end
-
   def <=>(other)
     name <=> other.name
   end
 
   def eql?(other)
-    other.is_a?(self.class) && hash == other.hash
+    instance_of?(other.class) && name == other.name
   end
 
   def hash
@@ -54,8 +50,16 @@ end
 class Options
   include Enumerable
 
+  attr_reader :options
+  protected :options
+
   def initialize(*args)
     @options = Set.new(*args)
+  end
+
+  def initialize_copy(other)
+    super
+    @options = other.options.dup
   end
 
   def each(*args, &block)
@@ -106,7 +110,7 @@ class Options
   alias_method :to_ary, :to_a
 
   def inspect
-    "#<#{self.class}: #{@options.map(&:inspect).join(", ")}>"
+    "#<#{self.class}: #{to_a.inspect}>"
   end
 
   def self.coerce(arg)

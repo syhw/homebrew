@@ -84,7 +84,9 @@ class FormulaCreator
     else
       @path = Formula.path name
     end
-    if @version.nil?
+    if @version
+      @version = Version.new(@version)
+    else
       @version = Pathname.new(url).version
     end
   end
@@ -113,6 +115,7 @@ class FormulaCreator
     require 'formula'
 
     # Documentation: https://github.com/mxcl/homebrew/wiki/Formula-Cookbook
+    #                #{HOMEBREW_PREFIX}/Library/Contributions/example-formula.rb
     # PLEASE REMOVE ALL GENERATED COMMENTS BEFORE SUBMITTING YOUR PULL REQUEST!
 
     class #{Formula.class_s name} < Formula
@@ -125,7 +128,7 @@ class FormulaCreator
 
     <% if mode == :cmake %>
       depends_on 'cmake' => :build
-    <% elsif mode == nil %>
+    <% elsif mode.nil? %>
       # depends_on 'cmake' => :build
     <% end %>
       depends_on :x11 # if your formula requires any X11/XQuartz components

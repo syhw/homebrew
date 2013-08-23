@@ -7,14 +7,15 @@ class Zookeeper < Formula
 
   head 'http://svn.apache.org/repos/asf/zookeeper/trunk'
 
+  option "c",      "Build C bindings."
+  option "perl",   "Build Perl bindings."
+
   if build.head?
     depends_on :automake
     depends_on :libtool
   end
 
-  option "c",      "Build C bindings."
-  option "perl",   "Build Perl bindings."
-  option "python", "Build Python bindings."
+  depends_on :python => :optional
 
   def shim_script target
     <<-EOS.undent
@@ -45,9 +46,9 @@ class Zookeeper < Formula
   def install
     # Don't try to build extensions for PPC
     if Hardware.is_32_bit?
-      ENV['ARCHFLAGS'] = "-arch i386"
+      ENV['ARCHFLAGS'] = "-arch #{Hardware::CPU.arch_32_bit}"
     else
-      ENV['ARCHFLAGS'] = "-arch i386 -arch x86_64"
+      ENV['ARCHFLAGS'] = Hardware::CPU.universal_archs.as_arch_flags
     end
 
     # Prep work for svn compile.
@@ -59,9 +60,8 @@ class Zookeeper < Formula
       end
     end
 
-    build_python = build.include? "python"
     build_perl = build.include? "perl"
-    build_c = build_python || build_perl || build.include?("c")
+    build_c = build.with?('python') || build_perl || build.include?("c")
 
     # Build & install C libraries.
     cd "src/c" do
@@ -72,10 +72,12 @@ class Zookeeper < Formula
     end if build_c
 
     # Install Python bindings
-    cd "src/contrib/zkpython" do
-      system "python", "src/python/setup.py", "build"
-      system "python", "src/python/setup.py", "install", "--prefix=#{prefix}"
-    end if build_python
+    python do
+      cd "src/contrib/zkpython" do
+        system python, "src/python/setup.py", "build"
+        system python, "src/python/setup.py", "install", "--prefix=#{prefix}"
+      end
+    end
 
     # Install Perl bindings
     cd "src/contrib/zkperl" do

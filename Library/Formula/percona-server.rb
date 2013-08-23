@@ -2,9 +2,9 @@ require 'formula'
 
 class PerconaServer < Formula
   homepage 'http://www.percona.com'
-  url 'http://www.percona.com/redir/downloads/Percona-Server-5.5/Percona-Server-5.5.30-30.2/source/Percona-Server-5.5.30-rel30.2.tar.gz'
-  version '5.5.30-30.2'
-  sha1 'e876f00b6fbee0791b13ed40c3642fecc5cc76e6'
+  url 'http://www.percona.com/redir/downloads/Percona-Server-5.6/Percona-Server-5.6.12-rc60.4/source/Percona-Server-5.6.12-rc60.4.tar.gz'
+  version '5.6.12-rc60.4'
+  sha1 '5508a47d5f834adc306bceb8cc60a48797441e15'
 
   depends_on 'cmake' => :build
   depends_on 'readline'
@@ -81,13 +81,16 @@ class PerconaServer < Formula
     args << "-DWITH_READLINE=yes" unless build.include? 'with-libedit'
 
     # Make universal for binding to universal applications
-    args << "-DCMAKE_OSX_ARCHITECTURES='i386;x86_64'" if build.universal?
+    args << "-DCMAKE_OSX_ARCHITECTURES='#{Hardware::CPU.universal_archs.as_cmake_arch_flags}'" if build.universal?
 
     # Build with local infile loading support
     args << "-DENABLED_LOCAL_INFILE=1" if build.include? 'enable-local-infile'
 
     system "cmake", *args
     system "make"
+    # Reported upstream:
+    # http://bugs.mysql.com/bug.php?id=69645
+    inreplace "scripts/mysql_config", / +-Wno[\w-]+/, ""
     system "make install"
 
     # Don't create databases inside of the prefix!
@@ -103,6 +106,10 @@ class PerconaServer < Formula
     end
 
     ln_s "#{prefix}/support-files/mysql.server", bin
+
+    # Move mysqlaccess to libexec
+    mv "#{bin}/mysqlaccess", libexec
+    mv "#{bin}/mysqlaccess.conf", libexec
   end
 
   def caveats; <<-EOS.undent

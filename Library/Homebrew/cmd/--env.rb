@@ -1,11 +1,14 @@
-require 'superenv'
+require 'extend/ENV'
 require 'hardware'
 
 module Homebrew extend self
   def __env
+    ENV.activate_extensions!
+
     if superenv?
       ENV.deps = ARGV.formulae.map(&:name) unless ARGV.named.empty?
     end
+
     ENV.setup_build_environment
     ENV.universal_binary if ARGV.build_universal?
     if $stdout.tty?
@@ -29,7 +32,7 @@ module Homebrew extend self
       HOMEBREW_USE_GCC HOMEBREW_USE_LLVM HOMEBREW_SVN HOMEBREW_GIT
       HOMEBREW_SDKROOT HOMEBREW_BUILD_FROM_SOURCE
       MAKE GIT CPP
-      ACLOCAL_PATH OBJC PATH ].select{ |key| env.fetch(key) if env.key? key }
+      ACLOCAL_PATH OBJC PATH CPATH].select{ |key| env.fetch(key) if env.key? key }
   end
 
   def dump_build_env env

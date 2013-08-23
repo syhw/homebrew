@@ -26,7 +26,7 @@ class Erlang < Formula
   url 'https://github.com/erlang/otp/archive/OTP_R15B03-1.tar.gz'
   sha1 '7843070f5d325f95ef13022fc416b22b6b14120d'
 
-  head 'https://github.com/erlang/otp.git', :branch => 'dev'
+  head 'https://github.com/erlang/otp.git', :branch => 'master'
 
   bottle do
     revision 1
@@ -68,7 +68,7 @@ class Erlang < Formula
             "--enable-shared-zlib",
             "--enable-smp-support"]
 
-    args << "--with-dynamic-trace=dtrace" unless MacOS.version == :leopard or not MacOS::CLT.installed?
+    args << "--with-dynamic-trace=dtrace" unless MacOS.version <= :leopard or not MacOS::CLT.installed?
 
     unless build.include? 'disable-hipe'
       # HIPE doesn't strike me as that reliable on OS X
