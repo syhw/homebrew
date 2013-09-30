@@ -1,22 +1,31 @@
 require 'formula'
 
-class Distribute < Formula
-  url 'http://pypi.python.org/packages/source/d/distribute/distribute-0.6.45.tar.gz'
-  sha1 '55b15037f2222828496a96f38447c0fa0228df85'
-end
-
 class Pypy < Formula
   homepage 'http://pypy.org/'
-  url 'https://bitbucket.org/pypy/pypy/downloads/pypy-2.0.2-osx64.tar.bz2'
-  version '2.0.2'
-  sha1 'a53de7bc88b9caa635d9d679c6e63813881ea7e9'
+  url 'https://bitbucket.org/pypy/pypy/downloads/pypy-2.1-osx64.tar.bz2'
+  version '2.1.0'
+  sha1 '6cdaa1dc0a47d9eb6d816f7d394ca46f290a1ed5'
 
   depends_on :arch => :x86_64
+
+  resource 'setuptools' do
+    url 'https://pypi.python.org/packages/source/s/setuptools/setuptools-1.1.4.tar.gz'
+    sha1 'b8bf9c2b8a114045598f0e16681d6a63a4d6cdf9'
+  end
+
+  resource 'pip' do
+    url 'https://pypi.python.org/packages/source/p/pip/pip-1.4.1.tar.gz'
+    sha1 '9766254c7909af6d04739b4a7732cc29e9a48cb0'
+  end
 
   def install
     rmtree 'site-packages'
 
-    prefix.install Dir['*']
+    # The PyPy binary install instructions suggest installing somewhere
+    # (like /opt) and symlinking in binaries as needed. Specifically,
+    # we want to avoid putting PyPy's Python.h somewhere that configure
+    # scripts will find it.
+    libexec.install Dir['*']
 
     # Post-install, fix up the site-packages and install-scripts folders
     # so that user-installed Python software survives minor updates, such
@@ -26,7 +35,7 @@ class Pypy < Formula
     prefix_site_packages.mkpath
 
     # Symlink the prefix site-packages into the cellar.
-    ln_s prefix_site_packages, prefix+'site-packages'
+    ln_s prefix_site_packages, libexec+'site-packages'
 
     # Tell distutils-based installers where to put scripts
     scripts_folder.mkpath
@@ -35,13 +44,12 @@ class Pypy < Formula
       install-scripts=#{scripts_folder}
     EOF
 
-    # Install distribute. The user can then do:
+    # Install setuptools. The user can then do:
     # $ easy_install pip
-    # $ pip install --upgrade distribute
-    # to get newer versions of distribute outside of Homebrew.
-    Distribute.new.brew do
-      system "#{bin}/pypy", "setup.py", "install"
-    end
+    # $ pip install --upgrade setuptools
+    # to get newer versions of setuptools outside of Homebrew.
+    resource('setuptools').stage { system "#{libexec}/bin/pypy", "setup.py", "install" }
+    resource('pip').stage { system "#{libexec}/bin/pypy", "setup.py", "install" }
 
     # Symlink to easy_install_pypy.
     unless (scripts_folder+'easy_install_pypy').exist?
@@ -60,14 +68,15 @@ class Pypy < Formula
     specifing the install-scripts folder as:
       #{scripts_folder}
 
-    If you install Python packages via "pypy setup.py install", easy_install, pip,
-    any provided scripts will go into the install-scripts folder above, so you may
-    want to add it to your PATH.
+    If you install Python packages via "pypy setup.py install", easy_install_pypy,
+    pip_pypy, any provided scripts will go into the install-scripts folder above,
+    so you may want to add it to your PATH *after* the `$(brew --prefix)/bin`
+    so you don't overwrite tools from CPython.
 
-    Distribute has been installed, so easy_install is available.
-    To update distribute itself outside of Homebrew:
+    Setuptools has been installed, so easy_install is available.
+    To update setuptools itself outside of Homebrew:
         #{scripts_folder}/easy_install pip
-        #{scripts_folder}/pip install --upgrade distribute
+        #{scripts_folder}/pip install --upgrade setuptools
 
     See: https://github.com/mxcl/homebrew/wiki/Homebrew-and-Python
     EOS
@@ -78,13 +87,13 @@ class Pypy < Formula
     HOMEBREW_PREFIX+"lib/pypy/site-packages"
   end
 
-  # Where distribute will install executable scripts
+  # Where setuptools will install executable scripts
   def scripts_folder
     HOMEBREW_PREFIX+"share/pypy"
   end
 
   # The Cellar location of distutils
   def distutils
-    prefix+"lib-python/2.7/distutils"
+    libexec+"lib-python/2.7/distutils"
   end
 end

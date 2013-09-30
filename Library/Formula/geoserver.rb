@@ -2,8 +2,8 @@ require 'formula'
 
 class Geoserver < Formula
   homepage 'http://geoserver.org/'
-  url 'http://downloads.sourceforge.net/project/geoserver/GeoServer/2.3.2/geoserver-2.3.2-bin.zip'
-  sha1 '86a3d0fe368867db88eeb401523cb19e95115e2d'
+  url 'http://downloads.sourceforge.net/project/geoserver/GeoServer/2.4.0/geoserver-2.4.0-bin.zip'
+  sha1 '0439b7d7a133dd738da042a82e8667325e22ef92'
 
   def install
     libexec.install Dir['*']
