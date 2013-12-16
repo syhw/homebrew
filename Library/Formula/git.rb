@@ -2,35 +2,49 @@ require 'formula'
 
 class Git < Formula
   homepage 'http://git-scm.com'
-  url 'http://git-core.googlecode.com/files/git-1.8.4.2.tar.gz'
-  sha1 'f2e9317703553b4215700605c15d0f3a30623a9d'
+  url 'https://git-core.googlecode.com/files/git-1.8.5.1.tar.gz'
+  sha1 'dcd244c7198e8afe42ab223f7b3c9b1ae01749c3'
   head 'https://github.com/git/git.git'
 
   bottle do
-    sha1 '028a2d04720decebabc8a7a9e47121ab95e967be' => :mavericks
-    sha1 '7b3d19e95c10c66a927928e18fe83c9fbd53eb04' => :mountain_lion
-    sha1 '826fae4c92d82d7e87ad7a4f543d5eb503b31440' => :lion
+    revision 1
+    sha1 '3dcbbccf00260999f5b653f5f2a4850f9cb76b54' => :mavericks
+    sha1 '3dbd8ce732095ca0f902b5eabcbe808dc40486be' => :mountain_lion
+    sha1 'e0e3f77e77865f6122e7399a1d3e433d4a7c18d0' => :lion
   end
 
   option 'with-blk-sha1', 'Compile with the block-optimized SHA1 implementation'
   option 'without-completions', 'Disable bash/zsh completions from "contrib" directory'
   option 'with-brewed-openssl', "Build with Homebrew OpenSSL instead of the system version"
   option 'with-brewed-curl', "Use Homebrew's version of cURL library"
+  option 'with-persistent-https', 'Build git-remote-persistent-https from "contrib" directory'
 
   depends_on :python
   depends_on 'pcre' => :optional
   depends_on 'gettext' => :optional
   depends_on 'openssl' if build.with? 'brewed-openssl'
   depends_on 'curl' => 'with-darwinssl' if build.with? 'brewed-curl'
+  depends_on 'go' => :build if build.with? 'persistent-https'
 
   resource 'man' do
-    url 'http://git-core.googlecode.com/files/git-manpages-1.8.4.2.tar.gz'
-    sha1 'aebbb6dc8bca979f8d54bdef51b128deba195c94'
+    url 'http://git-core.googlecode.com/files/git-manpages-1.8.5.1.tar.gz'
+    sha1 '32befa65b564640981d71f8a38eee19939a2eb63'
   end
 
   resource 'html' do
-    url 'http://git-core.googlecode.com/files/git-htmldocs-1.8.4.2.tar.gz'
-    sha1 'b0d5e7e24aba1af4a8e1a4fa9c894c3a673bf5d8'
+    url 'http://git-core.googlecode.com/files/git-htmldocs-1.8.5.1.tar.gz'
+    sha1 '16cd5fdf486aa880c4fcb297d769070c67996317'
+  end
+
+  def patches
+    if MacOS.version >= :mavericks
+      # Allow using PERLLIB_EXTRA to find Subversion Perl bindings location
+      # in the CLT/Xcode. Should be included in Git 1.8.6.
+      # https://git.kernel.org/cgit/git/git.git/commit/?h=next&id=07981d
+      # https://git.kernel.org/cgit/git/git.git/commit/?h=next&id=0386dd
+      ['https://git.kernel.org/cgit/git/git.git/patch/?id=07981d',
+       'https://git.kernel.org/cgit/git/git.git/patch/?id=0386dd']
+    end
   end
 
   def install
@@ -41,6 +55,10 @@ class Git < Formula
     ENV['NO_R_TO_GCC_LINKER'] = '1' # pass arguments to LD correctly
     ENV['PYTHON_PATH'] = python.binary if python
     ENV['PERL_PATH'] = which 'perl'
+
+    if MacOS.version >= :mavericks and MacOS.dev_tools_prefix
+      ENV['PERLLIB_EXTRA'] = "#{MacOS.dev_tools_prefix}/Library/Perl/5.16/darwin-thread-multi-2level"
+    end
 
     unless quiet_system ENV['PERL_PATH'], '-e', 'use ExtUtils::MakeMaker'
       ENV['NO_PERL_MAKEMAKER'] = '1'
@@ -62,6 +80,8 @@ class Git < Formula
                    "LDFLAGS=#{ENV.ldflags}",
                    "install"
 
+    bin.install Dir["contrib/remote-helpers/git-remote-{hg,bzr}"]
+
     # Install the OS X keychain credential helper
     cd 'contrib/credential/osxkeychain' do
       system "make", "CC=#{ENV.cc}",
@@ -77,6 +97,15 @@ class Git < Formula
                      "CFLAGS=#{ENV.cflags}",
                      "LDFLAGS=#{ENV.ldflags}"
       bin.install 'git-subtree'
+    end
+
+    if build.with? 'persistent-https'
+      cd 'contrib/persistent-https' do
+        system "make"
+        bin.install 'git-remote-persistent-http',
+                    'git-remote-persistent-https',
+                    'git-remote-persistent-https--proxy'
+      end
     end
 
     unless build.without? 'completions'
@@ -95,7 +124,7 @@ class Git < Formula
     man.install resource('man')
     (share+'doc/git-doc').install resource('html')
 
-    # Make html docs world-readable; check if this is still needed at 1.8.4.2
+    # Make html docs world-readable; check if this is still needed at 1.8.6
     chmod 0644, Dir["#{share}/doc/git-doc/**/*.{html,txt}"]
   end
 

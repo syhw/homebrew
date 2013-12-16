@@ -14,6 +14,7 @@ class Fontforge < Formula
   head do
     url 'https://github.com/fontforge/fontforge.git'
 
+    depends_on :autoconf
     depends_on :automake
     depends_on :libtool
     depends_on 'pkg-config' => :build
@@ -24,7 +25,7 @@ class Fontforge < Formula
   end
 
   option 'with-gif', 'Build with GIF support'
-  option 'with-x', 'Build with X'
+  option 'with-x', 'Build with X11 support, including FontForge.app'
 
   depends_on 'gettext'
   depends_on :python => :recommended
@@ -106,11 +107,14 @@ class Fontforge < Formula
 
     # Replace FlatCarbon headers with the real paths
     # Fixes building on 10.8
-    inreplace %w(fontforge/macbinary.c fontforge/startui.c gutils/giomime.c) do |s|
-      s.gsub! "/Developer/Headers/FlatCarbon/Files.h", "CarbonCore/Files.h"
-    end
-    inreplace %w(fontforge/startui.c) do |s|
-      s.gsub! "/Developer/Headers/FlatCarbon/CarbonEvents.h", "HIToolbox/CarbonEvents.h"
+    # Only needed for non-head build
+    unless build.head?
+      inreplace %w(fontforge/macbinary.c fontforge/startui.c gutils/giomime.c) do |s|
+        s.gsub! "/Developer/Headers/FlatCarbon/Files.h", "CarbonCore/Files.h"
+      end
+      inreplace %w(fontforge/startui.c) do |s|
+        s.gsub! "/Developer/Headers/FlatCarbon/CarbonEvents.h", "HIToolbox/CarbonEvents.h"
+      end
     end
 
     system "make"

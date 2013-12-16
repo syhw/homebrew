@@ -8,6 +8,7 @@ class Lighttpd < Formula
   option 'with-lua', 'Include Lua scripting support for mod_magnet'
 
   depends_on 'pkg-config' => :build
+  depends_on 'autoconf' => :build
   depends_on 'automake' => :build
   depends_on 'pcre'
   depends_on 'lua' => :optional
@@ -43,7 +44,7 @@ class Lighttpd < Formula
 
     mv sbin, bin
 
-    unless File.exists? config_path
+    unless File.exist? config_path
       config_path.install Dir["doc/config/lighttpd.conf"]
       config_path.install Dir["doc/config/modules.conf"]
       (config_path/"conf.d/").install Dir["doc/config/conf.d/*.conf"]
