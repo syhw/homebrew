@@ -2,14 +2,14 @@ require 'formula'
 
 class Hub < Formula
   homepage 'http://hub.github.com/'
-  url 'https://github.com/github/hub/archive/v1.11.1.tar.gz'
-  sha1 '1b7f1224be6ca0f88a9bfacd686cb2a20cc6fbef'
+  url 'https://github.com/github/hub/archive/v1.11.2.tar.gz'
+  sha1 '0fa36e9a87c8990aca11f7e0b0e65c3a946686c1'
   head 'https://github.com/github/hub.git'
 
   option 'without-completions', 'Disable bash/zsh completions'
 
   def install
-    ENV['GIT_DIR'] = downloader.cached_location/'.git' if build.head?
+    ENV['GIT_DIR'] = cached_download/'.git' if build.head?
 
     rake "install", "prefix=#{prefix}"
 

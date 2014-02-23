@@ -2,8 +2,8 @@ require 'formula'
 
 class Nginx < Formula
   homepage 'http://nginx.org/'
-  url 'http://nginx.org/download/nginx-1.4.4.tar.gz'
-  sha1 '304d5991ccde398af2002c0da980ae240cea9356'
+  url 'http://nginx.org/download/nginx-1.4.5.tar.gz'
+  sha1 '96c1aecd314f73a3c30a0db8c39ad15ddacb074e'
 
   devel do
     url 'http://nginx.org/download/nginx-1.5.10.tar.gz'
@@ -11,6 +11,12 @@ class Nginx < Formula
   end
 
   head 'http://hg.nginx.org/nginx/', :using => :hg
+
+  bottle do
+    sha1 "b5964496b5365e51cc9b7eb838b0499795e71861" => :mavericks
+    sha1 "2757fecb0611a6dd6e22a8122f775b917fac476f" => :mountain_lion
+    sha1 "f64a845d905589c9ad580ab4d5e6fe27c0eb53f9" => :lion
+  end
 
   env :userpaths
 
