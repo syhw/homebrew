@@ -242,17 +242,17 @@ class Formula
     (self.class.cc_failures || []).any? do |failure|
       # Major version check distinguishes between, e.g.,
       # GCC 4.7.1 and GCC 4.8.2, where a comparison is meaningless
-      failure.compiler == cc.name && failure.major_version == cc.major_version && \
-        failure.version >= cc.version
+      failure.compiler == cc.name && failure.major_version == cc.major_version &&
+        failure.version >= (cc.version || 0)
     end
   end
 
-  # sometimes the clean process breaks things
+  # sometimes the formula cleaner breaks things
   # skip cleaning paths in a formula with a class method like this:
-  #   skip_clean [bin+"foo", lib+"bar"]
-  # redefining skip_clean? now deprecated
+  #   skip_clean "bin/foo", "lib"bar"
+  # keep .la files with:
+  #   skip_clean :la
   def skip_clean? path
-    return true if self.class.skip_clean_all?
     return true if path.extname == '.la' and self.class.skip_clean_paths.include? :la
     to_check = path.relative_path_from(prefix).to_s
     self.class.skip_clean_paths.include? to_check
@@ -359,7 +359,7 @@ class Formula
   def self.each
     names.each do |name|
       begin
-        yield Formula.factory(name)
+        yield Formulary.factory(name)
       rescue StandardError => e
         # Don't let one broken formula break commands. But do complain.
         onoe "Failed to import: #{name}"
@@ -377,7 +377,7 @@ class Formula
 
     HOMEBREW_CELLAR.subdirs.map do |rack|
       begin
-        factory(rack.basename.to_s)
+        Formulary.factory(rack.basename.to_s)
       rescue FormulaUnavailableError
       end
     end.compact
@@ -394,16 +394,19 @@ class Formula
       if name =~ %r{(.+)/(.+)/(.+)}
         tap_name = "#$1-#$2".downcase
         tapd = Pathname.new("#{HOMEBREW_LIBRARY}/Taps/#{tap_name}")
-        tapd.find_formula do |relative_pathname|
-          return "#{tapd}/#{relative_pathname}" if relative_pathname.stem.to_s == $3
-        end if tapd.directory?
+
+        if tapd.directory?
+          tapd.find_formula do |relative_pathname|
+            return "#{tapd}/#{relative_pathname}" if relative_pathname.stem.to_s == $3
+          end
+        end
       end
       # Otherwise don't resolve paths or URLs
       return name
     end
 
     # test if the name is a core formula
-    formula_with_that_name = Pathname.new("#{HOMEBREW_LIBRARY}/Formula/#{name}.rb")
+    formula_with_that_name = Formula.path(name)
     if formula_with_that_name.file? and formula_with_that_name.readable?
       return name
     end
@@ -424,6 +427,11 @@ class Formula
     return name
   end
 
+  def self.[](name)
+    Formulary.factory(name)
+  end
+
+  # deprecated
   def self.factory name
     Formulary.factory name
   end
@@ -444,7 +452,7 @@ class Formula
 
   # True if this formula is provided by Homebrew itself
   def core_formula?
-    path.realpath.to_s == Formula.path(name).to_s
+    path.realpath == Formula.path(name)
   end
 
   def self.path name
@@ -745,18 +753,8 @@ class Formula
 
     def skip_clean *paths
       paths.flatten!
-
-      # :all is deprecated though
-      if paths.include? :all
-        @skip_clean_all = true
-        return
-      end
-
+      # Specifying :all is deprecated and will become an error
       skip_clean_paths.merge(paths)
-    end
-
-    def skip_clean_all?
-      @skip_clean_all
     end
 
     def skip_clean_paths
