@@ -1,6 +1,5 @@
 require 'testing_env'
 require 'software_spec'
-require 'bottles'
 
 class SoftwareSpecTests < Test::Unit::TestCase
   include VersionAssertions
@@ -79,6 +78,12 @@ class SoftwareSpecTests < Test::Unit::TestCase
     @spec.option('with-foo', 'blah')
     @spec.depends_on('foo' => :optional)
     assert_equal 'blah', @spec.build.first.description
+  end
+
+  def test_patch
+    @spec.patch :p1, :DATA
+    assert_equal 1, @spec.patches.length
+    assert_equal :p1, @spec.patches.first.strip
   end
 end
 

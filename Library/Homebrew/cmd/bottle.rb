@@ -83,6 +83,19 @@ module Homebrew extend self
       result = true
     end
 
+    index = 0
+    Pathname.new(keg).find do |pn|
+      if pn.symlink? && (link = pn.readlink).absolute?
+        if link.to_s.start_with?(string)
+          opoo "Absolute symlink starting with #{string}:" if index.zero?
+          puts "  #{pn} -> #{pn.resolved_path}"
+        end
+
+        index += 1
+        result = true
+      end
+    end
+
     result
   end
 
@@ -136,6 +149,7 @@ module Homebrew extend self
       begin
         keg.relocate_install_names prefix, Keg::PREFIX_PLACEHOLDER,
           cellar, Keg::CELLAR_PLACEHOLDER, :keg_only => f.keg_only?
+        keg.delete_pyc_files!
 
         HOMEBREW_CELLAR.cd do
           # Use gzip, faster to compress than bzip2, faster to uncompress than bzip2
