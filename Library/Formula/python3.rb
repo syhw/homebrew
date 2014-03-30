@@ -118,16 +118,11 @@ class Python3 < Formula
     # Create a site-packages in HOMEBREW_PREFIX/lib/python#{VER}/site-packages
     site_packages.mkpath
     # Symlink the prefix site-packages into the cellar.
-    ln_s site_packages, site_packages_cellar
+    site_packages_cellar.parent.install_symlink site_packages
 
     # Write our sitecustomize.py
     Dir["#{site_packages}/*.py{,c,o}"].each {|f| Pathname.new(f).unlink }
     (site_packages/"sitecustomize.py").write(sitecustomize)
-
-    # "python3" executable is forgotten for framework builds.
-    # Make sure homebrew symlinks it to HOMEBREW_PREFIX/bin.
-    ln_sf "#{bin}/python#{VER}", "#{bin}/python3"
-    ln_sf "#{bin}/python#{VER}-config", "#{bin}/python3-config"
 
     # Remove old setuptools installations that may still fly around and be
     # listed in the easy_install.pth. This can break setuptools build with
