@@ -19,8 +19,6 @@ class Llvm < Formula
 
   depends_on :python => :recommended
 
-  env :std if build.universal?
-
   keg_only :provided_by_osx
 
   def install
@@ -28,11 +26,10 @@ class Llvm < Formula
       raise 'The Python bindings need the shared library.'
     end
 
-    resource('clang').stage do
-      (buildpath/'tools/clang').install Dir['*']
-    end if build.with? 'clang'
+    (buildpath/"tools/clang").install resource("clang") if build.with? "clang"
 
     if build.universal?
+      ENV.permit_arch_flags
       ENV['UNIVERSAL'] = '1'
       ENV['UNIVERSAL_ARCH'] = Hardware::CPU.universal_archs.join(' ')
     end

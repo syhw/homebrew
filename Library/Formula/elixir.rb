@@ -2,7 +2,6 @@ require 'formula'
 
 class ErlangInstalled < Requirement
   fatal true
-  default_formula 'erlang'
   env :userpaths
 
   satisfy {
@@ -26,8 +25,8 @@ end
 
 class Elixir < Formula
   homepage 'http://elixir-lang.org/'
-  url  'https://github.com/elixir-lang/elixir/archive/v0.13.0.tar.gz'
-  sha1 '95baa1f980d93ed40c9472742ae62b28cf85b02d'
+  url  'https://github.com/elixir-lang/elixir/archive/v0.13.2.tar.gz'
+  sha1 '68e862b5cfa766eae1087799e2287f584c222196'
 
   head 'https://github.com/elixir-lang/elixir.git'
 
