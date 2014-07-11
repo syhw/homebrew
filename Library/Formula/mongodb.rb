@@ -1,24 +1,22 @@
-require 'formula'
+require "formula"
 
 class Mongodb < Formula
   homepage "http://www.mongodb.org/"
-  url "http://downloads.mongodb.org/src/mongodb-src-r2.6.1.tar.gz"
-  sha1 "3e069329e93a45f14bb86618eceea08d376dbc82"
+  url "http://downloads.mongodb.org/src/mongodb-src-r2.6.3.tar.gz"
+  sha1 "226ab45e3a2e4d4a749271f1bce393ea8358d3dd"
 
   bottle do
-    sha1 "091cafed1db9c96b4487a806f61df8ba0c3523b4" => :mavericks
-    sha1 "3a91d1ed6e1e75f48e6fc241a0cc3fba9d8aa810" => :mountain_lion
-    sha1 "3ffe58f9e71dfd0700e08651f272f7a511dbb8d2" => :lion
+    sha1 "d573717ca7c67455680a6823de210c940faf9ac6" => :mavericks
+    sha1 "f7d2a0711e3ac09fd61bcb243360c1a07fb83233" => :mountain_lion
+    sha1 "b646f64abf52bcc594e690ca2c95143685ade864" => :lion
   end
 
   devel do
-     url "http://downloads.mongodb.org/src/mongodb-src-r2.7.0.tar.gz"
-     sha1 "43449a69c3386e13fdb6abb2b13933f3ba607cc5"
+    url "http://downloads.mongodb.org/src/mongodb-src-r2.7.3.tar.gz"
+    sha1 "53f832b31b49063a60100bbe1be65015efcd3ccf"
   end
 
-  head do
-    url "https://github.com/mongodb/mongo.git"
-  end
+  head "https://github.com/mongodb/mongo.git"
 
   option "with-boost", "Compile using installed boost, not the version shipped with mongodb"
   depends_on "boost" => :optional
@@ -27,38 +25,31 @@ class Mongodb < Formula
   depends_on "openssl" => :optional
 
   def install
-    args = ["--prefix=#{prefix}", "-j#{ENV.make_jobs}"]
-
-    cxx = ENV.cxx
-    if ENV.compiler == :clang && MacOS.version >= :mavericks
-      # when building on Mavericks with libc++
-      # Use --osx-version-min=10.9 such that the compiler defaults to libc++.
-      # Upstream issue discussing the default flags:
-      # https://jira.mongodb.org/browse/SERVER-12682
-      args << "--osx-version-min=10.9"
-    end
-
-    args << '--64' if MacOS.prefer_64_bit?
-    args << "--cc=#{ENV.cc}"
-    args << "--cxx=#{cxx}"
+    args = %W[
+      --prefix=#{prefix}
+      -j#{ENV.make_jobs}
+      --cc=#{ENV.cc}
+      --cxx=#{ENV.cxx}
+      --osx-version-min=#{MacOS.version}
+    ]
 
     # --full installs development headers and client library, not just binaries
     # (only supported pre-2.7)
     args << "--full" if build.stable?
     args << "--use-system-boost" if build.with? "boost"
+    args << "--64" if MacOS.prefer_64_bit?
 
-    if build.with? 'openssl'
-      args << '--ssl'
-      args << "--extrapath=#{Formula["openssl"].opt_prefix}"
+    if build.with? "openssl"
+      args << "--ssl" << "--extrapath=#{Formula["openssl"].opt_prefix}"
     end
 
-    scons 'install', *args
+    scons "install", *args
 
     (buildpath+"mongod.conf").write mongodb_conf
     etc.install "mongod.conf"
 
-    (var+'mongodb').mkpath
-    (var+'log/mongodb').mkpath
+    (var+"mongodb").mkpath
+    (var+"log/mongodb").mkpath
   end
 
   def mongodb_conf; <<-EOS.undent
@@ -115,6 +106,6 @@ class Mongodb < Formula
   end
 
   test do
-    system "#{bin}/mongod", '--sysinfo'
+    system "#{bin}/mongod", "--sysinfo"
   end
 end
