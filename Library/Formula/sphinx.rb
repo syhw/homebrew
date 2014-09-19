@@ -2,20 +2,15 @@ require 'formula'
 
 class Sphinx < Formula
   homepage 'http://www.sphinxsearch.com'
-  url 'http://sphinxsearch.com/files/sphinx-2.1.8-release.tar.gz'
-  sha1 'c69e24ed1fad907b893dc61b0a52db30b6c85ad2'
+  url 'http://sphinxsearch.com/files/sphinx-2.2.4-release.tar.gz'
+  sha1 'd89f2188f7d47cd8468708b15cc55f5d457009e0'
 
   head 'http://sphinxsearch.googlecode.com/svn/trunk/'
 
   bottle do
-    sha1 "304bc474b4c1c80739e7a92fa05a9333520660a5" => :mavericks
-    sha1 "4f66be7ba289da28643f869c69adb892e01ddea8" => :mountain_lion
-    sha1 "988fc7b694ed273801018e332d3d44d3e72ff30d" => :lion
-  end
-
-  devel do
-    url 'http://sphinxsearch.com/files/sphinx-2.2.3-beta.tar.gz'
-    sha1 'ef78cebeae32a0582df504d74d6dd2ded81b73d9'
+    sha1 "2d58704fcd15ec7d9c8ac7f4bb4391b9105ea35f" => :mavericks
+    sha1 "5e3447a20996bd752d1b1793efef72b6dbf8421f" => :mountain_lion
+    sha1 "cd9566b61321cb1ae618c0937c5133219183b478" => :lion
   end
 
   option 'mysql', 'Force compiling against MySQL'
@@ -29,7 +24,7 @@ class Sphinx < Formula
   # http://snowball.tartarus.org/
   resource 'stemmer' do
     url 'http://snowball.tartarus.org/dist/libstemmer_c.tgz'
-    sha1 'bbe1ba5bbebb146575a575b8ca3342aa3b91bf93'
+    sha1 '9b0f120a68a3c688b2f5a8d0f681620465c29d38'
   end
 
   fails_with :llvm do
@@ -51,6 +46,7 @@ class Sphinx < Formula
               --with-libstemmer]
 
     args << "--enable-id64" if build.include? 'id64'
+    args << "--with-re2" if build.with? 're2'
 
     %w{mysql pgsql}.each do |db|
       if build.include? db

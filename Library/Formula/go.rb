@@ -3,14 +3,15 @@ require 'formula'
 class Go < Formula
   homepage 'http://golang.org'
   head 'https://go.googlecode.com/hg/'
-  url 'https://storage.googleapis.com/golang/go1.3.src.tar.gz'
-  version '1.3'
-  sha1 '9f9dfcbcb4fa126b2b66c0830dc733215f2f056e'
+  url 'https://storage.googleapis.com/golang/go1.3.1.src.tar.gz'
+  version '1.3.1'
+  sha1 'bc296c9c305bacfbd7bff9e1b54f6f66ae421e6e'
 
   bottle do
-    sha1 "86ad80f44b3114aaf53d5e673777f947d1fac3df" => :mavericks
-    sha1 "54e22253d53cee4b13636e5b673d3e83eeac178a" => :mountain_lion
-    sha1 "f3f9ce904f6d2b136db82683b405265b88fcd0c3" => :lion
+    revision 1
+    sha1 "9637d93efc0f70b1bdf3412f6684247a46104105" => :mavericks
+    sha1 "fbb03d1111c201253abf12ec8440761b0d6833f7" => :mountain_lion
+    sha1 "398053db3dc27be9797bd4cdd583b57a12033483" => :lion
   end
 
   option 'cross-compile-all', "Build the cross-compilers and runtime support for all supported platforms"
@@ -20,7 +21,7 @@ class Go < Formula
   def install
     # install the completion scripts
     bash_completion.install 'misc/bash/go' => 'go-completion.bash'
-    zsh_completion.install 'misc/zsh/go' => 'go'
+    zsh_completion.install 'misc/zsh/go' => '_go'
 
     # host platform (darwin) must come last in the targets list
     if build.include? 'cross-compile-all'
