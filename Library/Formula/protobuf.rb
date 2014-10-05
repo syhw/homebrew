@@ -25,6 +25,10 @@ class Protobuf < Formula
     # Don't build in debug mode. See:
     # https://github.com/Homebrew/homebrew/issues/9279
     # http://code.google.com/p/protobuf/source/browse/trunk/configure.ac#61
+    ENV.append "CXXFLAGS", "-stdlib=libstdc++"
+    ENV.append "CFLAGS", "-stdlib=libstdc++"
+    ENV.append "LDFLAGS", "-stdlib=libstdc++ -lstdc++"
+    ENV["CXX"] = "/usr/bin/clang++ -stdlib=libstdc++"
     ENV.prepend 'CXXFLAGS', '-DNDEBUG'
     ENV.universal_binary if build.universal?
     ENV.cxx11 if build.cxx11?

@@ -46,6 +46,10 @@ class Boost < Formula
 
   def install
     # https://svn.boost.org/trac/boost/ticket/8841
+    ENV.append "CXXFLAGS", "-stdlib=libstdc++"
+    ENV.append "CFLAGS", "-stdlib=libstdc++"
+    ENV.append "LDFLAGS", "-stdlib=libstdc++ -lstdc++"
+    ENV["CXX"] = "/usr/bin/clang++ -stdlib=libstdc++"
     if build.with? 'mpi' and build.with? 'single'
       raise <<-EOS.undent
         Building MPI support for both single and multi-threaded flavors

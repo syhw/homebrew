@@ -8,6 +8,10 @@ class Szip < Formula
   option :universal
 
   def install
+    ENV.append "CXXFLAGS", "-stdlib=libstdc++"
+    ENV.append "CFLAGS", "-stdlib=libstdc++"
+    ENV.append "LDFLAGS", "-stdlib=libstdc++ -lstdc++"
+    ENV["CXX"] = "/usr/bin/clang++ -stdlib=libstdc++"
     ENV.universal_binary if build.universal?
     system "./configure", "--disable-debug", "--disable-dependency-tracking",
                           "--prefix=#{prefix}"
