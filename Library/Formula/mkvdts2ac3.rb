@@ -2,6 +2,7 @@ require "formula"
 
 class Mkvdts2ac3 < Formula
   homepage "https://github.com/JakeWharton/mkvdts2ac3"
+  revision 2
 
   stable do
     url "https://github.com/JakeWharton/mkvdts2ac3/archive/1.6.0.tar.gz"
@@ -11,7 +12,12 @@ class Mkvdts2ac3 < Formula
     # https://github.com/JakeWharton/mkvdts2ac3/commit/f5008860e7ec2cbd950a0628c979f06387bf76d0
     patch :DATA
   end
-  revision 1
+
+  bottle do
+    cellar :any
+    sha1 "375129c89ce29fe5135b45d5f9a046b2372f39a4" => :mavericks
+    sha1 "dc7850a65fd6d181396a69deb0713b9ae7dad7a6" => :mountain_lion
+  end
 
   head "https://github.com/JakeWharton/mkvdts2ac3.git"
 

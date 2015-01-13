@@ -1,23 +1,22 @@
-require "formula"
-
 class Wireshark < Formula
-  homepage "http://www.wireshark.org"
-  revision 1
+  homepage "https://www.wireshark.org"
 
   stable do
-    url "http://wiresharkdownloads.riverbed.com/wireshark/src/all-versions/wireshark-1.12.0.tar.bz2"
-    mirror "http://www.wireshark.org/download/src/all-versions/wireshark-1.12.0.tar.bz2"
-    sha1 "c7a94a9ec90c1ff9be2a7d7b813276e433509df9"
+    url "https://www.wireshark.org/download/src/all-versions/wireshark-1.12.3.tar.bz2"
+    mirror "https://1.eu.dl.wireshark.org/src/wireshark-1.12.3.tar.bz2"
+    sha1 "44ad77b6e80f41ba34ac0eaf477b81cb1345ceed"
 
     # Removes SDK checks that prevent the build from working on CLT-only systems
     # Reported upstream: https://bugs.wireshark.org/bugzilla/show_bug.cgi?id=9290
     patch :DATA
+
+    depends_on "homebrew/dupes/libpcap" => :optional
   end
 
   bottle do
-    sha1 "c358f63d065e79c1bc95d9743686a0ba2ffb56d2" => :mavericks
-    sha1 "3beac5fc1a4ad062a29a105bd2f30fb7761cf698" => :mountain_lion
-    sha1 "e7b9eb2d8fefaf9c88fa23edf232a836794bfb11" => :lion
+    sha1 "87475adfabb351a0a67d9b934e24ec6b6a06a5f2" => :yosemite
+    sha1 "620d42463ee375d5e9d612677db0d418b07b0b02" => :mavericks
+    sha1 "348f070d0e4f922c82a915b9bbde25ae444d57f5" => :mountain_lion
   end
 
   head do
@@ -28,38 +27,51 @@ class Wireshark < Formula
     depends_on "libtool" => :build
   end
 
+  devel do
+    url "https://www.wireshark.org/download/src/all-versions/wireshark-1.99.1.tar.bz2"
+    mirror "https://1.eu.dl.wireshark.org/src/wireshark-1.99.1.tar.bz2"
+    sha1 "5ea32f83709a90fd5fdf5d331992e46a42ec27aa"
+
+    depends_on "homebrew/dupes/libpcap" if MacOS.version == :mavericks
+  end
+
   option "with-gtk+3", "Build the wireshark command with gtk+3"
   option "with-gtk+", "Build the wireshark command with gtk+"
   option "with-qt", "Build the wireshark-qt command (can be used with or without either GTK option)"
-  option "with-headers", "Install Wireshark library headers for plug-in developemnt"
+  option "with-qt5", "Build the wireshark-qt command with qt5 (can be used with or without either GTK option)"
+  option "with-headers", "Install Wireshark library headers for plug-in development"
 
   depends_on "pkg-config" => :build
 
   depends_on "glib"
   depends_on "gnutls"
   depends_on "libgcrypt"
+  depends_on "d-bus"
 
   depends_on "geoip" => :recommended
+  depends_on "c-ares" => :recommended
 
-  depends_on "c-ares" => :optional
+  depends_on "libsmi" => :optional
   depends_on "lua" => :optional
-  depends_on "pcre" => :optional
   depends_on "portaudio" => :optional
+  depends_on "qt5" => :optional
   depends_on "qt" => :optional
   depends_on "gtk+3" => :optional
   depends_on "gtk+" => :optional
+  depends_on "gnome-icon-theme" if build.with? "gtk+3"
 
   def install
     args = ["--disable-dependency-tracking",
+            "--disable-silent-rules",
             "--prefix=#{prefix}",
-            "--with-gnutls",
-            "--with-ssl"]
+            "--with-gnutls"]
 
-    args << "--disable-wireshark" if build.without?("gtk+3") && build.without?("qt") && build.without?("gtk+")
+    args << "--disable-wireshark" if build.without?("gtk+3") && build.without?("qt") && build.without?("gtk+") && build.without?("qt5")
     args << "--disable-gtktest" if build.without?("gtk+3") && build.without?("gtk+")
-    args << "--with-qt" if build.with? "qt"
+    args << "--with-qt" if build.with? "qt" or build.with? "qt5"
     args << "--with-gtk3" if build.with? "gtk+3"
     args << "--with-gtk2" if build.with? "gtk+"
+    args << "--with-libcap=#{Formula["libpcap"].opt_prefix}" if build.with? "libpcap"
 
     if build.head?
       args << "--disable-warnings-as-errors"
@@ -69,7 +81,7 @@ class Wireshark < Formula
     system "./configure", *args
     system "make"
     ENV.deparallelize # parallel install fails
-    system "make install"
+    system "make", "install"
 
     if build.with? "headers"
       (include/"wireshark").install Dir["*.h"]

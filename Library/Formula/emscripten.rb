@@ -1,14 +1,12 @@
-require "formula"
-
 class Emscripten < Formula
-  homepage "http://emscripten.org"
-  url "https://github.com/kripken/emscripten/archive/1.24.0.tar.gz"
-  sha1 "19f45d0d33078959aa84b48c4cbe8a9cf8a7a12b"
+  homepage "https://kripken.github.io/emscripten-site/"
+  url "https://github.com/kripken/emscripten/archive/1.28.2.tar.gz"
+  sha1 "39f25db710874d835ac1ffe1941ef854a0a8f23a"
 
   bottle do
-    sha1 "b5093ee8311a3cfc22526c26eab67b92c4554ffc" => :mavericks
-    sha1 "b52376a4b6e2f7e830cb9679963210875e2c0e4f" => :mountain_lion
-    sha1 "eb5f07a073f38e19df12aa3005057fed71742827" => :lion
+    sha1 "f73edf45833d349803c37f911eb3be78a8053a5c" => :yosemite
+    sha1 "d5c0dc65320975927bffe7bd38c59d6a07ae4f9b" => :mavericks
+    sha1 "50318165485dda92de1fea4ccbacc627a4762264" => :mountain_lion
   end
 
   head do
@@ -25,16 +23,17 @@ class Emscripten < Formula
 
   stable do
     resource "fastcomp" do
-      url "https://github.com/kripken/emscripten-fastcomp/archive/1.24.0.tar.gz"
-      sha1 "39d28dbed54edb267c30f480ef579738fac42d24"
+      url "https://github.com/kripken/emscripten-fastcomp/archive/1.28.2.tar.gz"
+      sha1 "967aa51c32b806ad15af3d8d61d66a004ada453d"
     end
 
     resource "fastcomp-clang" do
-      url "https://github.com/kripken/emscripten-fastcomp-clang/archive/1.24.0.tar.gz"
-      sha1 "4b89e978b8ad9227daca7460e43da4cb78bc7c30"
+      url "https://github.com/kripken/emscripten-fastcomp-clang/archive/1.28.2.tar.gz"
+      sha1 "87cdf58e83ef6bf0af813b336515ada52b124588"
     end
   end
 
+  depends_on :python if MacOS.version <= :snow_leopard
   depends_on "node"
   depends_on "closure-compiler" => :optional
   depends_on "yuicompressor"
@@ -80,7 +79,8 @@ class Emscripten < Formula
   end
 
   def caveats; <<-EOS.undent
-    Manually set LLVM_ROOT to \"#{opt_prefix}/libexec/llvm/bin\"
+    Manually set LLVM_ROOT to
+      #{opt_libexec}/llvm/bin
     in ~/.emscripten after running `emcc` for the first time.
     EOS
   end

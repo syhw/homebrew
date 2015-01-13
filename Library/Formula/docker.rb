@@ -1,15 +1,15 @@
 require "formula"
 
 class Docker < Formula
-  homepage "http://docker.io"
+  homepage "https://www.docker.com/"
   # Boot2docker and docker are generally updated at the same time.
   # Please update the version of boot2docker too
-  url "https://github.com/docker/docker.git", :tag => "v1.2.0"
+  url "https://github.com/docker/docker.git", :tag => "v1.4.1"
 
   bottle do
-    sha1 "92d2cb761ea3da18edfea52de6cb4ee113dba0aa" => :mavericks
-    sha1 "eccd8540a0c57eca11456b3f060e67c430907c05" => :mountain_lion
-    sha1 "6421cb3f6e5fd485e61731e004b2390629291867" => :lion
+    sha1 "71a4d59ee4d12d7cff6e1125b154596e9de1d271" => :yosemite
+    sha1 "aab3097942193361d2a1c0958462103425891255" => :mavericks
+    sha1 "71cf01001d2cfed720a1e54fddcc47108ec087f7" => :mountain_lion
   end
 
   option "without-completions", "Disable bash/zsh completions"

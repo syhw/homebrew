@@ -2,22 +2,23 @@ require "formula"
 
 class Mono < Formula
   homepage "http://www.mono-project.com/"
-  url "http://download.mono-project.com/sources/mono/mono-3.8.0.tar.bz2"
-  sha1 "0e1fcaa0ec228830f9b0a650b6cfd3c098c82afc"
+  url "http://download.mono-project.com/sources/mono/mono-3.10.0.tar.bz2"
+  sha1 "74e43604ea48e941c39a43ebc153abee4ddba56c"
 
   # xbuild requires the .exe files inside the runtime directories to
   # be executable
   skip_clean "lib/mono"
 
   bottle do
-    sha1 "2184aeba1346c3cbbed0dbf077466bbd826c3559" => :mavericks
-    sha1 "982b56d443b6d0f65e0351f74afcf10175271fea" => :mountain_lion
-    sha1 "df60a0666a1aa750e3e64d12d16a80ca1f7997da" => :lion
+    revision 1
+    sha1 "c2cb9253a6d3b69ed6b916bf0071a698e7c12c04" => :yosemite
+    sha1 "c1b47e3c54c6617a968405c24ced6489d50e79e1" => :mavericks
+    sha1 "ffa3cf10d50caa8bba3e8a6b9ae85964ef73be55" => :mountain_lion
   end
 
   resource "monolite" do
-    url "http://storage.bos.xamarin.com/mono-dist-master/latest/monolite-111-latest.tar.gz"
-    sha1 "af90068351895082f03fdaf2840b7539e23e3f32"
+    url "http://storage.bos.xamarin.com/mono-dist-master/cb/cb33b94c853049a43222288ead1e0cb059b22783/monolite-111-latest.tar.gz"
+    sha1 "a674c47cd60786c49185fb3512410c43689be43e"
   end
 
   def install

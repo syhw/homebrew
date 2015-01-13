@@ -2,20 +2,15 @@ require "formula"
 
 class Imagemagick < Formula
   homepage "http://www.imagemagick.org"
+  url "http://www.imagemagick.org/download/releases/ImageMagick-6.9.0-3.tar.xz"
+  sha256 "f00452ba2c05c2df9624c62d7adb49ecf17140edd6e5f355cceca051dab1fb38"
 
-  # upstream's stable tarballs tend to disappear, so we provide our own mirror
-  # Tarball and checksum from: http://www.imagemagick.org/download
-  url "https://downloads.sf.net/project/machomebrew/mirror/ImageMagick-6.8.9-7.tar.xz"
-  mirror "http://www.imagemagick.org/download/ImageMagick-6.8.9-7.tar.xz"
-  sha256 "45670f37ebd3354d64e45df5462b929b5b843dee2b038b0ad524491492bffbf9"
-
-  head "https://www.imagemagick.org/subversion/ImageMagick/trunk",
-    :using => UnsafeSubversionDownloadStrategy
+  head "http://www.imagemagick.org/subversion/ImageMagick/trunk"
 
   bottle do
-    sha1 "a899454c8b4940ca04f991c5ed0b268baea8e960" => :mavericks
-    sha1 "0616e461385b1d0be1428181b6e676f5bcc0e5ae" => :mountain_lion
-    sha1 "a6783e3deea4502b2878ea85cd1a3fde58b22573" => :lion
+    sha1 "9e788e5e325c50da3accb53228fdcda87bd43929" => :yosemite
+    sha1 "f260b2e5c574fe7159a093769a9cabad7970ef9b" => :mavericks
+    sha1 "e277ef9ac3df4771851a8e061025ba8005fd292c" => :mountain_lion
   end
 
   option "with-quantum-depth-8", "Compile with a quantum depth of 8 bit"
@@ -25,6 +20,7 @@ class Imagemagick < Formula
   option "without-magick-plus-plus", "disable build/install of Magick++"
   option "with-jp2", "Compile with Jpeg2000 support"
   option "enable-hdri", "Compile with HDRI support"
+  option "with-fftw", "Compile with FFTW support"
 
   depends_on "libtool" => :run
 
@@ -46,14 +42,9 @@ class Imagemagick < Formula
   depends_on "ghostscript" => :optional
   depends_on "webp" => :optional
   depends_on "homebrew/versions/openjpeg21" if build.with? "jp2"
+  depends_on "fftw" => :optional
 
   depends_on "xz"
-
-  def pour_bottle?
-    # If libtool is keg-only it currently breaks the bottle.
-    # This is a temporary workaround until we have a better fix.
-    not Formula["libtool"].keg_only?
-  end
 
   skip_clean :la
 
@@ -73,6 +64,7 @@ class Imagemagick < Formula
     args << "--with-gs-font-dir=#{HOMEBREW_PREFIX}/share/ghostscript/fonts" if build.without? "ghostscript"
     args << "--without-magick-plus-plus" if build.without? "magick-plus-plus"
     args << "--enable-hdri=yes" if build.include? "enable-hdri"
+    args << "--enable-fftw=yes" if build.with? "fftw"
 
     if build.with? "quantum-depth-32"
       quantum_depth = 32
@@ -116,7 +108,6 @@ class Imagemagick < Formula
   end
 
   test do
-    test_png = HOMEBREW_LIBRARY/"Homebrew/test/fixtures/test.png"
-    system "#{bin}/identify", test_png
+    system "#{bin}/identify", test_fixtures("test.png")
   end
 end

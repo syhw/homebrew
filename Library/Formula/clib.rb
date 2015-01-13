@@ -1,15 +1,15 @@
-require "formula"
-
 class Clib < Formula
   homepage "https://github.com/clibs/clib"
-  url "https://github.com/clibs/clib/archive/1.2.2.tar.gz"
-  sha1 "e103638102f33cb38308d6f108feea9f0daff08a"
+  url "https://github.com/clibs/clib/archive/1.4.1.tar.gz"
+  sha1 "f1d5dbd76d8ad75204d182f9db1b197e311fa25e"
+
+  head "https://github.com/clibs/clib.git"
 
   bottle do
     cellar :any
-    sha1 "078a75c4851fd7baef7dc1b44b2573c873d61ef4" => :mavericks
-    sha1 "3b694a2c43b542317795383df940404edf91ada9" => :mountain_lion
-    sha1 "2551a74714e88fe36b44132ab9b9f55554c12cd8" => :lion
+    sha1 "3c00a49b63b1aebd8455fcc4294910c619df0539" => :yosemite
+    sha1 "54593525512d3d10f18fcac29e8fece198242f75" => :mavericks
+    sha1 "9ff299d4acd909c7087237788c8dff55a4247ea4" => :mountain_lion
   end
 
   def install

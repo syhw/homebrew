@@ -3,13 +3,13 @@ require "language/go"
 
 class Terraform < Formula
   homepage "http://www.terraform.io/"
-  url "https://github.com/hashicorp/terraform/archive/v0.2.1.tar.gz"
-  sha1 "f2772e785bfc2e409a3578c41557ba1988aa3153"
+  url "https://github.com/hashicorp/terraform/archive/v0.3.5.tar.gz"
+  sha1 "2c53b217faedbcffcdf5fb78f1ab585f36e5f21f"
 
   bottle do
-    sha1 "94ae5dcbc41ad630b9a5ebe85f814a7c107a122b" => :mavericks
-    sha1 "17ba9f29cb8b7808c294dbb019c2056ef834088e" => :mountain_lion
-    sha1 "24a307812d75adbbc764a80972723fc68acaae0a" => :lion
+    sha1 "71b4d2cf75a292ef44f6fe8c688d3396275ff7bb" => :yosemite
+    sha1 "2a9b71e0a58d2b07eedd33eb43ec11ba6e859996" => :mavericks
+    sha1 "2a5dcd44de95b2f95cd0bb0264398d9a71798990" => :mountain_lion
   end
 
   depends_on "go" => :build
@@ -23,7 +23,7 @@ class Terraform < Formula
   end
 
   go_resource "github.com/hashicorp/hcl" do
-    url "https://github.com/hashicorp/hcl.git", :revision => "a0a5d2873ec34d649ced122e53b180c27474f3a3"
+    url "https://github.com/hashicorp/hcl.git", :revision => "25719dbfedc20ce21c23dadb25983fad4694dcf8"
   end
 
   go_resource "github.com/mitchellh/copystructure" do
@@ -39,7 +39,7 @@ class Terraform < Formula
   end
 
   go_resource "github.com/mitchellh/goamz" do
-    url "https://github.com/mitchellh/goamz.git", :revision => "9cad7da945e699385c1a3e115aa255211921c9bb"
+    url "https://github.com/mitchellh/goamz.git", :revision => "ab653226ea8718749271e08212506d411714e865"
   end
 
   go_resource "github.com/vaughan0/go-ini" do
@@ -51,11 +51,11 @@ class Terraform < Formula
   end
 
   go_resource "github.com/armon/consul-api" do
-    url "https://github.com/armon/consul-api.git", :revision => "045662de1042be0662fe4a1e21b57c8f7669261a"
+    url "https://github.com/armon/consul-api.git", :revision => "115162c46303047d9cefb2a953eeb643d4624a3e"
   end
 
   go_resource "github.com/pearkes/digitalocean" do
-    url "https://github.com/pearkes/digitalocean.git", :revision => "0c9e1876f4db62d725158402ab5158db334d491f"
+    url "https://github.com/pearkes/digitalocean.git", :revision => "454ebf8720a34e077ebe62c7cd5a248cbf7ca8ff"
   end
 
   go_resource "github.com/pearkes/dnsimple" do
@@ -71,7 +71,7 @@ class Terraform < Formula
   end
 
   go_resource "github.com/mitchellh/go-homedir" do
-    url "https://github.com/mitchellh/go-homedir.git", :revision => "0af1630672c20c57b4f10c2afba2264516562918"
+    url "https://github.com/mitchellh/go-homedir.git", :revision => "7d2d8c8a4e078ce3c58736ab521a40b37a504c52"
   end
 
   go_resource "github.com/armon/circbuf" do
@@ -95,7 +95,19 @@ class Terraform < Formula
   end
 
   go_resource "github.com/mitchellh/prefixedio" do
-    url "https://github.com/mitchellh/prefixedio.git", :revision => "64119910ab902e336f308a1ed751a3721ba24c23"
+    url "https://github.com/mitchellh/prefixedio.git", :revision => "89d9b535996bf0a185f85b59578f2e245f9e1724"
+  end
+
+  go_resource "github.com/mitchellh/go-linereader" do
+    url "https://github.com/mitchellh/go-linereader.git", :revision => "07bab5fdd9580500aea6ada0e09df4aa28e68abd"
+  end
+
+  go_resource "github.com/hashicorp/yamux" do
+    url "https://github.com/hashicorp/yamux.git", :revision => "9feabe6854fadca1abec9cd3bd2a613fe9a34000"
+  end
+
+  go_resource "github.com/hashicorp/go-checkpoint" do
+    url "https://github.com/hashicorp/go-checkpoint.git", :revision => "89ef2a697dd8cdb4623097d5bb9acdb19a470767"
   end
 
   go_resource "code.google.com/p/goauth2" do
@@ -118,6 +130,10 @@ class Terraform < Formula
       :using => :hg
   end
 
+  go_resource "github.com/hashicorp/atlas-go" do
+    url "https://github.com/hashicorp/atlas-go.git", :revision => "072814b5d05e34466c6c0fdd62cdecf184dc3521"
+  end
+
   def install
     ENV["GOPATH"] = buildpath
     # For the gox buildtool used by terraform, which doesn't need to
@@ -134,7 +150,9 @@ class Terraform < Formula
     end
 
     cd terrapath do
-      system "make", "test"
+      # Clear ATLAS_TOKEN env var to not run atlas acceptance tests
+      # that would require an active atlas account
+      system "make", "test", "ATLAS_TOKEN="
 
       mkdir "bin"
       arch = MacOS.prefer_64_bit? ? "amd64" : "386"
@@ -176,6 +194,6 @@ class Terraform < Formula
         count = 4
       }
     EOS
-    system "#{bin}/terraform", "plan", testpath
+    system "#{bin}/terraform", "plan", "-var", "aws.region=us-west-2", testpath
   end
 end

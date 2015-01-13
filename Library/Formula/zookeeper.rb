@@ -12,25 +12,17 @@ class Zookeeper < Formula
     # https://issues.apache.org/jira/browse/ZOOKEEPER-2049
     if MacOS.version == :yosemite
       patch :p0 do
-        url "https://issues.apache.org/jira/secure/attachment/12672517/ZOOKEEPER-2049.noprefix.branch-3.4.patch"
-        sha1 "001424dacb82209c12653b3fbcdc0847a41f4294"
+        url "https://issues.apache.org/jira/secure/attachment/12673210/ZOOKEEPER-2049.noprefix.branch-3.4.patch"
+        sha1 "ff0e971c028050ccebd8cc7caa348ab14716d664"
       end
-    end
-
-  # Everything in this block can go back to being head-only after next stable release;
-  # They are needed in stable presently because the Yosemite patch modifies configure.
-    if MacOS.version == :yosemite
-      depends_on "cppunit" => :build
-      depends_on "libtool" => :build
-      depends_on "autoconf" => :build
-      depends_on "automake" => :build
     end
   end
 
   bottle do
-    sha1 "44d960c61b67308c2e6e510399505582afe2904d" => :mavericks
-    sha1 "df1c9ff667738859b1362541bcd14bcdfcf6804c" => :mountain_lion
-    sha1 "23cdb5e2a183ef2593b4d7c4e2047fb7a774e031" => :lion
+    revision 1
+    sha1 "4ef32a515592565bdf88546b9773725e4079a080" => :yosemite
+    sha1 "c2db3e5bf5f66cd575a827842d667ec7f1acf6d0" => :mavericks
+    sha1 "ac54b226852c9ec51477de8263bec2c767f7e842" => :mountain_lion
   end
 
   head do
@@ -40,8 +32,8 @@ class Zookeeper < Formula
     # https://issues.apache.org/jira/browse/ZOOKEEPER-2049
     if MacOS.version == :yosemite
       patch :p0 do
-        url "https://issues.apache.org/jira/secure/attachment/12672519/ZOOKEEPER-2049.noprefix.trunk.patch"
-        sha1 "009e7703431a3b81043b57a6ef19885fbc15221f"
+        url "https://issues.apache.org/jira/secure/attachment/12673212/ZOOKEEPER-2049.noprefix.trunk.patch"
+        sha1 "79ed0793e4693c9bbb83aad70582b55012f19eac"
       end
     end
 
@@ -96,9 +88,6 @@ class Zookeeper < Formula
     end
 
     cd "src/c" do
-      # Remove the autotools from this block after next stable release.
-      system "aclocal" if MacOS.version == :yosemite
-      system "autoreconf", "-fvi" if MacOS.version == :yosemite
       system "./configure", "--disable-dependency-tracking",
                             "--prefix=#{prefix}",
                             "--without-cppunit"

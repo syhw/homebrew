@@ -4,14 +4,13 @@ class Boot2docker < Formula
   homepage "https://github.com/boot2docker/boot2docker-cli"
   # Boot2docker and docker are generally updated at the same time.
   # Please update the version of docker too
-  url "https://github.com/boot2docker/boot2docker-cli.git", :tag => "v1.2.0"
-  head "https://github.com/boot2docker/boot2docker-cli.git", :branch => "master"
+  url "https://github.com/boot2docker/boot2docker-cli.git", :tag => "v1.4.1"
+  head "https://github.com/boot2docker/boot2docker-cli.git"
 
   bottle do
-    revision 1
-    sha1 "9da9a3caea7efbf7b2d9d5c9fd6948ac796becca" => :mavericks
-    sha1 "9cff42aea648b52fd10a3077595ca494b062ce5c" => :mountain_lion
-    sha1 "05582008ec7a25b1f4263a24aa559887ed10a4c4" => :lion
+    sha1 "9e23c1d530e7ef94fbac0c02eb02fecb943c8f7b" => :yosemite
+    sha1 "72dc462b5bf76c4c69e35aef14e6d4ffa7bbcb6e" => :mavericks
+    sha1 "82da9c5a4f56d4fe5e4fd08d1a2098cb40842bc5" => :mountain_lion
   end
 
   depends_on "docker" => :recommended
@@ -29,6 +28,25 @@ class Boot2docker < Formula
     end
 
     bin.install "bin/boot2docker-cli" => "boot2docker"
+  end
+
+  def plist; <<-EOS.undent
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+    <dict>
+      <key>Label</key>
+      <string>#{plist_name}</string>
+      <key>ProgramArguments</key>
+      <array>
+        <string>#{opt_bin}/boot2docker</string>
+        <string>up</string>
+      </array>
+      <key>RunAtLoad</key>
+      <true/>
+    </dict>
+    </plist>
+    EOS
   end
 
   test do

@@ -5,7 +5,7 @@ require 'formula'
 #  - http://wiki.winehq.org/Gecko
 #  - http://wiki.winehq.org/Mono
 class Wine < Formula
-  homepage 'http://winehq.org/'
+  homepage 'https://www.winehq.org/'
 
   stable do
     url 'https://downloads.sourceforge.net/project/wine/Source/wine-1.6.2.tar.bz2'
@@ -23,9 +23,15 @@ class Wine < Formula
     end
   end
 
+  bottle do
+    sha1 "348f15e19880888d19d04d2fe4bad42048fe6828" => :yosemite
+    sha1 "69f05602ecde44875cf26297871186aaa0b26cd7" => :mavericks
+    sha1 "a89371854006687b74f4446a52ddb1f68cfafa7e" => :mountain_lion
+  end
+
   devel do
-    url "https://downloads.sourceforge.net/project/wine/Source/wine-1.7.28.tar.bz2"
-    sha256 "67c3f157b9e720971d1f7dc582e9f0b16879ef660b5ba284a77f8bdfc6fc2313"
+    url "https://downloads.sourceforge.net/project/wine/Source/wine-1.7.34.tar.bz2"
+    sha256 "4d5a3b25450fb232aa9d0d0dd859b7d50b8ffb6180f24aefb6eb4e400d32330b"
 
     depends_on "samba" => :optional
     depends_on "gnutls"
@@ -63,14 +69,14 @@ class Wine < Formula
   depends_on 'libgsm' => :optional
 
   resource 'gecko' do
-    url 'https://downloads.sourceforge.net/wine/wine_gecko-2.24-x86.msi', :using => :nounzip
-    version '2.24'
-    sha1 'b4923c0565e6cbd20075a0d4119ce3b48424f962'
+    url 'https://downloads.sourceforge.net/wine/wine_gecko-2.34-x86.msi', :using => :nounzip
+    version '2.34'
+    sha256 '956c26bf302b1864f4d7cb6caee4fc83d4c1281157731761af6395b876e29ca7'
   end
 
   resource 'mono' do
-    url 'https://downloads.sourceforge.net/wine/wine-mono-4.5.2.msi', :using => :nounzip
-    sha256 'd9124edb41ba4418af10eba519dafb25ab4338c567d25ce0eb4ce1e1b4d7eaad'
+    url 'https://downloads.sourceforge.net/wine/wine-mono-4.5.4.msi', :using => :nounzip
+    sha256 '20bced7fee01f25279edf07670c5033d25c2c9834a839e7a20410ce1c611d6f2'
   end
 
   fails_with :llvm do
@@ -162,7 +168,7 @@ class Wine < Formula
       which may cause text rendering issues in applications such as Steam.
       We recommend that you run winecfg, add an override for dwrite in the
       Libraries tab, and edit the override mode to "disable". See:
-        http://bugs.winehq.org/show_bug.cgi?id=31374
+        https://bugs.winehq.org/show_bug.cgi?id=31374
     EOS
 
     if build.with? 'x11'
@@ -173,7 +179,7 @@ class Wine < Formula
         "x11" (or use winetricks).
 
         For best results with X11, install the latest version of XQuartz:
-          http://xquartz.macosforge.org/
+          https://xquartz.macosforge.org/
       EOS
     end
     return s

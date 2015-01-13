@@ -1,21 +1,20 @@
-require "formula"
-
 class Nginx < Formula
   homepage "http://nginx.org/"
   url "http://nginx.org/download/nginx-1.6.2.tar.gz"
   sha1 "1a5458bc15acf90eea16353a1dd17285cf97ec35"
 
   devel do
-    url "http://nginx.org/download/nginx-1.7.5.tar.gz"
-    sha1 "432303cf9694eedb56a5a91d86536beb604d766b"
+    url "http://nginx.org/download/nginx-1.7.9.tar.gz"
+    sha1 "44ef4770db281cea26a1b2e66c0e34193e1d1f1f"
   end
 
   head "http://hg.nginx.org/nginx/", :using => :hg
 
   bottle do
-    sha1 "7aa0fc40ada6fa9623817f3f5bac0310b7fb1b45" => :mavericks
-    sha1 "c1660c583f74b0829f752804f566769e607998a7" => :mountain_lion
-    sha1 "2f4810ccc3cb5687685028591668ecae50b3cb30" => :lion
+    revision 1
+    sha1 "67f757d71e7372b8ccd390c63c2d604792fde33e" => :yosemite
+    sha1 "25cc325ec468f84edd9300369a1845a87109c1d0" => :mavericks
+    sha1 "a75d729e45f85ccaf5ad53095d52b4ce1ae455f2" => :mountain_lion
   end
 
   env :userpaths
@@ -32,18 +31,6 @@ class Nginx < Formula
   depends_on "pcre"
   depends_on "passenger" => :optional
   depends_on "openssl"
-
-  def passenger_config_args
-    passenger_config = "#{HOMEBREW_PREFIX}/opt/passenger/bin/passenger-config"
-    nginx_ext = `#{passenger_config} --nginx-addon-dir`.chomp
-
-    if File.directory?(nginx_ext)
-      return "--add-module=#{nginx_ext}"
-    end
-
-    puts "Unable to install nginx with passenger support."
-    exit
-  end
 
   def install
     # Changes default port to 8080
@@ -74,7 +61,11 @@ class Nginx < Formula
             "--with-http_gzip_static_module"
           ]
 
-    args << passenger_config_args if build.with? "passenger"
+    if build.with? "passenger"
+      nginx_ext = `#{Formula["passenger"].opt_bin}/passenger-config --nginx-addon-dir`.chomp
+      args << "--add-module=#{nginx_ext}"
+    end
+
     args << "--with-http_dav_module" if build.with? "webdav"
     args << "--with-debug" if build.with? "debug"
     args << "--with-http_spdy_module" if build.with? "spdy"
@@ -86,7 +77,7 @@ class Nginx < Formula
       system "./configure", *args
     end
     system "make"
-    system "make install"
+    system "make", "install"
     man8.install "objs/nginx.8"
     (var/"run/nginx").mkpath
   end
@@ -124,16 +115,16 @@ class Nginx < Formula
   def passenger_caveats; <<-EOS.undent
 
     To activate Phusion Passenger, add this to #{etc}/nginx/nginx.conf, inside the 'http' context:
-      passenger_root #{HOMEBREW_PREFIX}/opt/passenger/libexec/lib/phusion_passenger/locations.ini;
+      passenger_root #{Formula["passenger"].opt_libexec}/lib/phusion_passenger/locations.ini;
       passenger_ruby /usr/bin/ruby;
     EOS
   end
 
   def caveats
     s = <<-EOS.undent
-    Docroot is: #{HOMEBREW_PREFIX}/var/www
+    Docroot is: #{var}/www
 
-    The default port has been set in #{HOMEBREW_PREFIX}/etc/nginx/nginx.conf to 8080 so that
+    The default port has been set in #{etc}/nginx/nginx.conf to 8080 so that
     nginx can run without sudo.
     EOS
     s << passenger_caveats if build.with? "passenger"

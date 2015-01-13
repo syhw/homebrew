@@ -1,51 +1,47 @@
-require "formula"
-
-# Note that x.even are stable releases, x.odd are devel releases
 class Libuv < Formula
-  homepage "https://github.com/joyent/libuv"
-  url "https://github.com/joyent/libuv/archive/v0.10.21.tar.gz"
-  sha1 "883bb240d84e1db11b22b5b0dfdd117ed6bc6318"
+  homepage "https://github.com/libuv/libuv"
+  url "https://github.com/libuv/libuv/archive/v1.1.0.tar.gz"
+  sha1 "0c5d68bbfecd0bf2a6331403d375f791e34c298d"
+  head "https://github.com/libuv/libuv.git", :branch => "v1.x"
 
   bottle do
     cellar :any
-    sha1 "d5791cfcd21caedadd5621de7228a1dc7cd83006" => :mavericks
-    sha1 "69f380f49bbec2d1066e74bfda73aad797395af2" => :mountain_lion
-    sha1 "789d58edabb28ca47bc8072000e935a0c958780e" => :lion
+    sha1 "46af35adc3ea259b3d9e0e3930df978d2b2f760b" => :yosemite
+    sha1 "0ae353f8519f1d9da14397ce63e1f5711cc85403" => :mavericks
+    sha1 "bde5f606395b8c46d1926b91a1b6fb971cfa9288" => :mountain_lion
   end
 
-  head do
-    url "https://github.com/joyent/libuv.git", :branch => "master"
-
-    depends_on "automake" => :build
-    depends_on "autoconf" => :build
-    depends_on "libtool" => :build
-  end
-
-  devel do
-    url "https://github.com/joyent/libuv/archive/v1.0.0-rc1.tar.gz"
-    sha1 "5be6817b15980b0453b3da3dafb4beea16e90d8f"
-    version "1.0.0-rc1"
-
-    depends_on "pkg-config" => :build
-    depends_on "automake" => :build
-    depends_on "autoconf" => :build
-    depends_on "libtool" => :build
-  end
+  depends_on "pkg-config" => :build
+  depends_on "automake" => :build
+  depends_on "autoconf" => :build
+  depends_on "libtool" => :build
 
   option :universal
 
   def install
     ENV.universal_binary if build.universal?
 
-    if build.stable?
-      system "make", "libuv.dylib"
-      prefix.install "include"
-      lib.install "libuv.dylib"
-    else
-      system "./autogen.sh"
-      system "./configure", "--disable-dependency-tracking",
-                            "--prefix=#{prefix}"
-      system "make", "install"
-    end
+    system "./autogen.sh"
+    system "./configure", "--disable-dependency-tracking",
+                          "--disable-silent-rules",
+                          "--prefix=#{prefix}"
+    system "make", "install"
+  end
+
+  test do
+    (testpath/"test.c").write <<-EOS.undent
+      #include <uv.h>
+
+      int main()
+      {
+        uv_loop_t* loop = malloc(sizeof *loop);
+        uv_loop_init(loop);
+        uv_loop_close(loop);
+        free(loop);
+        return 0;
+      }
+    EOS
+    system ENV.cc, "test.c", "-luv", "-o", "test"
+    system "./test"
   end
 end

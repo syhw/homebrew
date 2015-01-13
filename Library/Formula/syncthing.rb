@@ -1,13 +1,11 @@
-require "formula"
-
 class Syncthing < Formula
   homepage "http://syncthing.net"
-  url "https://github.com/calmh/syncthing.git", :tag => "v0.9.17"
+  url "https://github.com/syncthing/syncthing.git", :tag => "v0.10.18"
 
   bottle do
-    sha1 "940efca60fa03ef1a4905cba06cb20c0f128e663" => :mavericks
-    sha1 "bfd1913a54b4c3cc63fec0c13bd03888d5bf2d72" => :mountain_lion
-    sha1 "0d7c3a475c175acb132108341fee751a600cfdd2" => :lion
+    sha1 "c734cf769c576ea6a4d6dbcce43543633386f15f" => :yosemite
+    sha1 "a5c3f2f2882c81acd87636a6301d17de926d47a1" => :mavericks
+    sha1 "7a4dee0d17a1f5df6acb013c8f0d51d28160a415" => :mountain_lion
   end
 
   depends_on "go" => :build
@@ -17,11 +15,12 @@ class Syncthing < Formula
     ENV["GOPATH"] = cached_download/".gopath"
     ENV.append_path "PATH", "#{ENV["GOPATH"]}/bin"
 
+    # FIXTHIS: do this without mutating the cache!
     hack_dir = cached_download/".gopath/src/github.com/syncthing"
     rm_rf  hack_dir
     mkdir_p hack_dir
     ln_s cached_download, "#{hack_dir}/syncthing"
-    ln_s cached_download/".git", ".git"
+    ENV["GIT_DIR"] = cached_download/".git"
 
     system "./build.sh", "noupgrade"
     bin.install "syncthing"
@@ -48,6 +47,8 @@ class Syncthing < Formula
         </array>
         <key>RunAtLoad</key>
         <true/>
+        <key>ProcessType</key>
+        <string>Background</string>
       </dict>
     </plist>
     EOS

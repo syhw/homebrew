@@ -1,22 +1,16 @@
-require "formula"
-
-# Stay at least one version behind and use the old-versions directory, because
-# tarballs are routinely removed and upstream won't change this practice.
 class Pngcrush < Formula
   homepage "http://pmt.sourceforge.net/pngcrush/"
-  url "https://downloads.sourceforge.net/project/pmt/pngcrush/1.7.77/pngcrush-1.7.77.tar.gz"
-  sha1 "70e15781220a0095453d04b040c6f42d77487d7b"
+  url "https://downloads.sourceforge.net/project/pmt/pngcrush/1.7.82/pngcrush-1.7.82.tar.gz"
+  sha1 "a9d7305908810a7da981611e7aea8830b3ff1f43"
 
   bottle do
     cellar :any
-    sha1 "4fbc1d4dd08adb4f3278cb6422140207c96e01f7" => :mavericks
-    sha1 "bca5fc1cf30f862aed221275ffb7eb3596409789" => :mountain_lion
-    sha1 "4dc287b68464aefd6ac9fc47ddb6d2942c75d3e7" => :lion
+    sha1 "ddb569fe21bd966d5d3f51416bc824bd6772f9f3" => :yosemite
+    sha1 "0c8cca15817311bacdc7b0fa4919b2dbfc3e1e62" => :mavericks
+    sha1 "5774590804ab1bf665b1ec6f1a3b0abfaade3d05" => :mountain_lion
   end
 
   def install
-    # Required to successfully build the bundled zlib 1.2.6
-    ENV.append_to_cflags "-DZ_SOLO"
     # Required to enable "-cc" (color counting) option (disabled by default since 1.5.1)
     ENV.append_to_cflags "-DPNGCRUSH_COUNT_COLORS"
 
@@ -25,5 +19,9 @@ class Pngcrush < Formula
                    "CFLAGS=#{ENV.cflags}",
                    "LDFLAGS=#{ENV.ldflags}"
     bin.install "pngcrush"
+  end
+
+  test do
+    system "#{bin}/pngcrush", test_fixtures("test.png"), "/dev/null"
   end
 end
